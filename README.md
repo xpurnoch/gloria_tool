@@ -104,19 +104,10 @@ output/<genome_name>/
 
 ## Customising parameters
 
-All numerical thresholds live in `config.sh`. You never need to edit the scripts
+All numerical thresholds live in config files. You never need to edit the scripts
 themselves. Key parameters:
 
 | Parameter | Default | Controls |
 |-----------|---------|----------|
-| `FIMO_LTR_PVALUE` | `1e-5` | FIMO p-value for LTR scanning |
-| `MARKOV_ORDER` | `2` | Order of Markov background model |
-| `MIN_HIT_LEN` | `80` | Minimum Solo LTR hit length (bp) |
-| `MIN_HIT_SCORE` | `50` | Minimum nhmmer bit score |
-| `FISHER_MIN_FAMILY_SIZE` | `20` | Minimum LTR regions per family for Fisher test |
-| `FISHER_MIN_HITS_IN_FAMILY` | `10` | Minimum hits within family for Fisher test |
-| `BH_FDR_THRESHOLD` | `0.05` | Benjamini-Hochberg FDR threshold |
-| `BEDTOOLS_SHUFFLE_SEED` | `123` | Reproducibility seed for genomic shuffle |
-| `GSEA_N_PERM` | `100000` | Number of fgsea permutations |
 
-See `config.sh` for the full list with descriptions.
+See `config.sh` and `config.R` for the full list with descriptions.
