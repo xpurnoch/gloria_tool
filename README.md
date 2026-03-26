@@ -100,42 +100,6 @@ output/<genome_name>/
 ├── pipeline_report.txt               Plain-text summary report
 └── plots/                            All analysis plots (PNG)
 ```
-
----
-
-## Background model
-
-The Markov background model (`ltr_background.txt`) is computed from **LTR sequences
-only** (`LTR_5prime.fa`), not from the full genome. This ensures FIMO scoring is
-calibrated to the nucleotide composition of the sequences actually being scanned,
-giving a fair family-level comparison. The background model order is controlled
-by `MARKOV_ORDER` in `config.sh` (default: 2 = trinucleotide frequencies).
-
----
-
-## How parameters flow through the pipeline
-
-All numerical thresholds are defined once in `config.sh`.
-
-**Bash scripts** (`01`, `02`, `04`) source `config.sh` directly at startup:
-```bash
-source "$SCRIPT_DIR/../config.sh"
-```
-
-**R scripts** (`03`, `05`–`09`) source `scripts/load_config.R` at startup:
-```r
-source(file.path(dirname(sys.frame(1)$ofile), "load_config.R"))
-```
-
-`load_config.R` runs `config.sh` in a bash subprocess, captures all variable
-assignments, and creates them as native R objects in the calling script's
-environment. This means R scripts always read from `config.sh` directly —
-whether launched via PBS, interactively, or from the command line.
-No environment variable exports are needed.
-
-If `config.sh` cannot be found automatically, set the `GLORIA_CONFIG`
-environment variable to its absolute path before running any R script.
-
 ---
 
 ## Customising parameters
