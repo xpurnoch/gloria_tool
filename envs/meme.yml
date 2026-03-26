@@ -1,0 +1,42 @@
+name: meme
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bzip2=1.0.8
+  - ca-certificates
+  - expat=2.7.3
+  - icu=73.2
+  - libffi=3.5.2
+  - libgcc-ng
+  - libiconv=1.18
+  - liblzma=5.8.1
+  - libsqlite=3.51.1
+  - libstdcxx-ng
+  - libuuid=2.41.3
+  - libxml2=2.12.7
+  - libxslt=1.1.39
+  - libzlib=1.3.1
+  - meme=5.5.9
+  - ncurses=6.5
+  - nodejs=22.6.0
+  - openssl=3.6.0
+  - perl=5.32.1
+  - perl-app-cpanminus=1.7048
+  - perl-cgi=4.71
+  - perl-html-parser=3.83
+  - perl-html-template=2.97
+  - perl-json=4.10
+  - perl-json-xs=4.04
+  - perl-log-log4perl=1.56
+  - perl-math-cdf=0.1
+  - perl-xml-parser=2.44_01
+  - perl-xml-simple=2.25
+  - pip
+  - python=3.14.2
+  - readline=8.3
+  - tk=8.6.13
+  - tzdata
+  - xz=5.8.1
+  - zlib=1.3.1
+  - zstd=1.5.7

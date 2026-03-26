@@ -1,0 +1,279 @@
+#!/bin/bash
+#PBS -N gloria
+#PBS -q default
+#PBS -l select=1:ncpus=8:mem=100gb:scratch_local=200gb
+#PBS -l walltime=5:00:00
+#PBS -j oe
+
+# =============================================================================
+# run_all.pbs — GLORIA pipeline PBS job submission script
+#
+# Runs all 9 pipeline steps sequentially on a PBS cluster node.
+# After each step, results are synced to permanent storage via rsync.
+# If any step fails, partial results are saved before exiting.
+#
+# Usage:
+#   qsub run_all.pbs
+#   qsub -v SKIP_CONTROL=1 run_all.pbs
+#
+# Before submitting:
+#   1. Set GLORIA_ROOT below to the absolute path of your gloria_tool directory.
+#   2. Place genome FASTA files (.fna / .fa / .fasta) in gloria_tool/genomes/
+#   3. Place motif file as gloria_tool/motifs.meme
+#   4. Place JASPAR family mapping as gloria_tool/jaspar_tf_families.csv
+#   5. Create conda environments (once):
+#        conda env create -f gloria_tool/envs/dante_ltr.yml
+#        conda env create -f gloria_tool/envs/meme.yml
+#
+# Optional variable:
+#   SKIP_CONTROL   Set to 1 to skip steps 4 and 5 (random control analysis)
+#
+# PBS resource requirements (adjust as needed):
+#   1 node, 8 CPUs, 80 GB RAM, 80 GB scratch, 2h walltime
+# =============================================================================
+
+set -uo pipefail
+
+# =============================================================================
+# Source config — all parameters, thresholds, and derived paths come from here
+# =============================================================================
+GLORIA_ROOT="/storage/brno2/home/xpurnoch/work/gloria_tool"
+source "$GLORIA_ROOT/config.sh"
+
+SCRIPTS="$SCRIPTS_DIR"
+
+# =============================================================================
+# validate_inputs
+#
+# Checks that all required input files are present before starting.
+# GENOMES is a space-separated list of genome filenames (basename only)
+# that must exist in gloria_tool/genomes/.
+# Example: qsub -v GENOMES="genome1.fna genome2.fna" scripts/run_all.pbs
+# =============================================================================
+validate_inputs() {
+  if [[ -z "${GENOMES:-}" ]]; then
+    echo "ERROR: GENOMES variable not set"
+    echo "Usage: qsub -v GENOMES=\"genome1.fna genome2.fna\" scripts/run_all.pbs"
+    exit 1
+  fi
+
+  [[ -d "$GENOMES_DIR"  ]] || { echo "ERROR: Genomes directory not found: $GENOMES_DIR"; exit 1; }
+  [[ -f "$MOTIFS_FILE"  ]] || { echo "ERROR: Motifs not found: $MOTIFS_FILE";             exit 2; }
+  [[ -f "$JASPAR_FILE"  ]] || { echo "ERROR: JASPAR TF families not found: $JASPAR_FILE"; exit 3; }
+
+  for G in $GENOMES; do
+    [[ -f "$GENOMES_DIR/$G" ]] || { echo "ERROR: Genome not found: $GENOMES_DIR/$G"; exit 4; }
+  done
+
+  echo "INFO: Genomes to process: $GENOMES"
+}
+
+# =============================================================================
+# build_run_dir
+#
+# Creates output directory named after the genome files passed in GENOMES.
+# =============================================================================
+build_run_dir() {
+  local RUN_LABEL=""
+  for G in $GENOMES; do
+    local B="${G%.*}"
+    RUN_LABEL="${RUN_LABEL}${RUN_LABEL:+_}${B}"
+  done
+  RUN_DIR="$OUTPUT_DIR/$RUN_LABEL"
+  mkdir -p "$RUN_DIR"
+  echo "INFO: Output directory: $RUN_DIR"
+}
+
+# =============================================================================
+# copy_inputs_to_scratch
+#
+# Copies only the genome files listed in GENOMES to scratch.
+# =============================================================================
+copy_inputs_to_scratch() {
+  cp "$MOTIFS_FILE" "$SCRATCHDIR/motifs.meme"
+  cp "$JASPAR_FILE" "$SCRATCHDIR/jaspar_tf_families.csv"
+
+  for G in $GENOMES; do
+    cp "$GENOMES_DIR/$G" "$SCRATCHDIR/$G"
+    echo "  Copied genome: $G"
+  done
+}
+
+# =============================================================================
+# save_results
+#
+# Syncs all results from scratch to permanent storage using rsync.
+# Called after each step and on emergency exit.
+# Excludes tmp/ and *.fai to save space.
+# =============================================================================
+save_results() {
+  local STEP_LABEL="${1:-unknown}"
+  echo ""
+  echo "[SAVE] Copying results after step: $STEP_LABEL → $RUN_DIR"
+  rsync -a --exclude='tmp/' --exclude='*.fai' \
+    "$SCRATCHDIR/" "$RUN_DIR/" 2>/dev/null \
+    && echo "[SAVE] Done" \
+    || echo "[SAVE] WARNING: rsync had errors (partial copy)"
+}
+
+# =============================================================================
+# setup_exit_trap
+#
+# Registers EXIT trap to save partial results if the pipeline fails.
+# =============================================================================
+setup_exit_trap() {
+  PIPELINE_FAILED=0
+
+  on_exit() {
+    if [[ $PIPELINE_FAILED -ne 0 ]]; then
+      echo ""
+      echo "=========================================="
+      echo "PIPELINE FAILED — saving partial results"
+      echo "=========================================="
+      save_results "EMERGENCY_EXIT"
+    fi
+    # Clean scratch only on success to allow debugging on failure
+    [[ $PIPELINE_FAILED -eq 0 ]] && rm -rf "$SCRATCHDIR/tmp" 2>/dev/null || true
+  }
+
+  trap 'on_exit' EXIT
+  trap 'PIPELINE_FAILED=1; exit 1' TERM INT
+}
+
+# =============================================================================
+# run_step
+#
+# Runs a single pipeline step. Saves results on success.
+# Saves partial results and exits on failure.
+# =============================================================================
+run_step() {
+  local STEP_NUM="$1"
+  local STEP_DESC="$2"
+  shift 2
+
+  echo ""
+  echo "=================================================="
+  echo "Running: $STEP_DESC"
+  echo "=================================================="
+
+  if "$@"; then
+    save_results "step_${STEP_NUM}"
+    return 0
+  else
+    local EXIT_CODE=$?
+    echo ""
+    echo "[ERROR] Step $STEP_NUM failed (exit $EXIT_CODE): $STEP_DESC"
+    PIPELINE_FAILED=1
+    save_results "step_${STEP_NUM}_FAILED"
+    exit $EXIT_CODE
+  fi
+}
+
+# =============================================================================
+# print_runtime
+# =============================================================================
+print_runtime() {
+  local TIME_START="$1"
+  local TIME_END
+  TIME_END=$(date +%s)
+  local ELAPSED=$(( TIME_END - TIME_START ))
+  printf "\n[RUNTIME] Total time: %dh %dm %ds\n" \
+    $(( ELAPSED / 3600 )) \
+    $(( (ELAPSED % 3600) / 60 )) \
+    $(( ELAPSED % 60 ))
+}
+
+# =============================================================================
+# MAIN
+# =============================================================================
+validate_inputs
+build_run_dir
+copy_inputs_to_scratch
+setup_exit_trap
+
+# Work from scratch directory — all scripts cd here implicitly
+cd "$SCRATCHDIR"
+TIME_START=$(date +%s)
+
+# Export all config variables so R scripts can read them via Sys.getenv()
+export NCPUS="${PBS_NCPUS:-${NCPUS}}"
+export SKIP_CONTROL="${SKIP_CONTROL:-0}"
+export GENOMES
+export RUN_DIR
+
+# R scripts read config.sh directly via load_config.R — no export needed.
+# We only export the variables that are not in config.sh or need runtime overrides.
+export JASPAR_FILE="$SCRATCHDIR/jaspar_tf_families.csv"
+
+echo "Cores: $NCPUS"
+echo "SKIP_CONTROL: $SKIP_CONTROL"
+echo "Output: $RUN_DIR"
+
+[[ "$SKIP_CONTROL" == "1" ]] && echo "INFO: Steps 4 and 5 will be skipped"
+
+# --- Step 1: DANTE annotation + LTR extraction + FIMO on full LTRs ---
+run_step 1 "DANTE + LTR extraction + FIMO" \
+  bash "$SCRIPTS/01_dante_pipeline.sh"
+
+# --- Step 2: HMMER Solo LTR detection + FIMO ---
+run_step 2 "HMMER Solo LTR detection + FIMO" \
+  bash "$SCRIPTS/02_hmmer_solo_ltr.sh"
+
+# --- Step 3: Fisher exact tests for TFBS enrichment ---
+# R is included in the dante_ltr conda environment — no separate module needed
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+run_step 3 "TFBS enrichment (Fisher tests)" \
+  Rscript "$SCRIPTS/03_tfbs_ltr_enrichment.R"
+
+# --- Step 4: Generate genomic shuffle controls + FIMO [optional] ---
+if [[ "$SKIP_CONTROL" == "1" ]]; then
+  echo ""
+  echo "=================================================="
+  echo "[SKIP] Step 4: Generate random controls + FIMO"
+  echo "=================================================="
+else
+  run_step 4 "Generate controls + FIMO" \
+    bash "$SCRIPTS/04_random_control_fimo.sh"
+fi
+
+# --- Step 5: LTR vs control Fisher tests + comparison table [optional] ---
+if [[ "$SKIP_CONTROL" == "1" ]]; then
+  echo ""
+  echo "=================================================="
+  echo "[SKIP] Step 5: LTR vs RANDOM control OR analysis"
+  echo "=================================================="
+else
+  run_step 5 "LTR vs RANDOM control OR analysis" \
+    Rscript "$SCRIPTS/05_random_control_analysis.R"
+fi
+
+# --- Step 6: Prepare GSEA rank file and GMT gene sets ---
+run_step 6 "GSEA preparation" \
+  Rscript "$SCRIPTS/06_prepare_gsea.R"
+
+# --- Step 7: Run fgsea on TF families ---
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+run_step 7 "GSEA analysis" \
+  Rscript "$SCRIPTS/07_run_gsea.R"
+
+# --- Step 8: Generate all analysis plots ---
+run_step 8 "Generate plots" \
+  Rscript "$SCRIPTS/08_make_plots.R"
+
+# --- Step 9: Generate plain-text summary report ---
+run_step 9 "Generate report" \
+  Rscript "$SCRIPTS/09_report.R"
+
+# =============================================================================
+# Done
+# =============================================================================
+echo ""
+echo "=========================================="
+echo "PIPELINE FINISHED SUCCESSFULLY"
+echo "=========================================="
+print_runtime "$TIME_START"
+echo "[OUTPUT] Results saved to: $RUN_DIR"
+[[ "$SKIP_CONTROL" == "1" ]] && echo "[INFO] Random control was skipped"
+
