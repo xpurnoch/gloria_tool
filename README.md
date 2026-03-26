@@ -27,7 +27,6 @@ gloria_tool/
     ├── 07_run_gsea.R
     ├── 08_make_plots.R
     ├── 09_report.R
-    └── load_config.R             ← Helper script for sourcing config.sh
     └── run_all.pbs               ← PBS job submission script
 ```
 
