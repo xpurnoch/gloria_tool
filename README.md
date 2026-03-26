@@ -44,7 +44,7 @@ mamba env create -f envs/meme.yml
 ```
 
 ### 2. Place input files
-- Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension)
+Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension)
 
 ### 3. Configure
 
