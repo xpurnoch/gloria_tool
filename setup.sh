@@ -1,89 +1,154 @@
 #!/bin/bash
 # =============================================================================
-# setup.sh — GLORIA one-time setup script
+# setup.sh
 #
-# Run this once after unpacking gloria_tool:
+# First-time setup for GLORIA pipeline on MetaCentrum.
+# Run this script from the gloria_tool root directory:
 #   bash setup.sh
 #
-# What it does:
-#   1. Creates conda environments from envs/*.yml
-#   2. Writes correct conda env paths into config.sh
+# What this script does:
+#   1. Detects GLORIA_ROOT from current directory
+#   2. Creates conda environments (skips if already exist)
+#   3. Detects conda env paths from mamba env list
+#   4. Writes paths into pipeline_config.sh
+#   5. Sets GLORIA_ROOT in scripts/run_all.pbs
 # =============================================================================
 set -euo pipefail
 
-module add mambaforge
-GLORIA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
 
-echo "============================================"
-echo " GLORIA setup"
-echo " Root: $GLORIA_ROOT"
-echo "============================================"
+info()    { echo -e "${GREEN}[INFO]${RESET} $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+error()   { echo -e "${RED}[ERROR]${RESET} $*"; exit 1; }
 
 # =============================================================================
-# 1. Find conda/mamba
+# STEP 1: Detect GLORIA_ROOT
 # =============================================================================
 echo ""
-echo "[1/2] Locating conda/mamba..."
+echo "============================================================"
+echo " GLORIA Pipeline Setup"
+echo "============================================================"
+echo ""
 
-if command -v mamba &>/dev/null; then
-    CONDA_CMD="mamba"
-elif command -v conda &>/dev/null; then
-    CONDA_CMD="conda"
-else
-    echo "[ERROR] Neither mamba nor conda found in PATH."
-    echo "        Load the module first, e.g.: module add mambaforge"
-    exit 1
+GLORIA_ROOT="$(pwd)"
+info "GLORIA_ROOT detected: $GLORIA_ROOT"
+
+# Sanity check — are we in the right directory?
+[[ -f "$GLORIA_ROOT/config.sh" ]] || \
+  error "config.sh not found. Run setup.sh from the gloria_tool root directory."
+
+# =============================================================================
+# STEP 2: Load mambaforge and create conda environments
+# =============================================================================
+info "Loading mambaforge..."
+module add mambaforge 2>/dev/null || warn "Could not load mambaforge module — assuming mamba is already in PATH"
+
+if ! command -v mamba &>/dev/null; then
+  error "mamba not found. Load mambaforge first: module add mambaforge"
 fi
 
-CONDA_BASE="$($CONDA_CMD info --base 2>/dev/null)"
-[[ -z "$CONDA_BASE" ]] && { echo "[ERROR] Cannot determine conda base path"; exit 1; }
-echo "  conda base : $CONDA_BASE"
-echo "  command    : $CONDA_CMD"
+info "Creating conda environments..."
 
-# =============================================================================
-# 2. Create conda environments
-# =============================================================================
-echo ""
-echo "[2/2] Creating conda environments..."
+for ENV_YML in envs/dante_ltr.yml envs/meme.yml; do
+  [[ -f "$ENV_YML" ]] || error "Environment file not found: $ENV_YML"
 
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
+  ENV_NAME=$(grep '^name:' "$ENV_YML" | awk '{print $2}')
+  [[ -z "$ENV_NAME" ]] && error "Could not parse env name from $ENV_YML"
 
-for ENV_YML in "$GLORIA_ROOT/envs/"*.yml; do
-    ENV_NAME=$(grep '^name:' "$ENV_YML" | awk '{print $2}')
-    ENV_PATH="$HOME/.conda/envs/$ENV_NAME"
-
-    if conda env list | grep -q "^$ENV_NAME "; then
-        echo "  [SKIP] $ENV_NAME already exists — $(conda env list | grep "^$ENV_NAME " | awk '{print $NF}')"
-    else
-        echo "  Creating $ENV_NAME (this may take 10-20 minutes)..."
-        $CONDA_CMD env create -f "$ENV_YML" -q
-        echo "  [OK] $ENV_NAME created"
-    fi
-
-    # Get actual path (may differ from default if user has custom conda config)
-    ENV_PATH=$(conda env list | grep "^$ENV_NAME " | awk '{print $NF}')
-    echo "  Path: $ENV_PATH"
-
-    # Write path into config.sh
-    if [[ "$ENV_NAME" == "dante_ltr" ]]; then
-        sed -i "s|CONDA_ENV_DANTE_LTR=.*|CONDA_ENV_DANTE_LTR=\"$ENV_PATH\"|" "$GLORIA_ROOT/config.sh"
-    elif [[ "$ENV_NAME" == "meme" ]]; then
-        sed -i "s|CONDA_ENV_MEME=.*|CONDA_ENV_MEME=\"$ENV_PATH\"|" "$GLORIA_ROOT/config.sh"
-    fi
+  if mamba env list | grep -q "^${ENV_NAME}\s"; then
+    info "Environment '$ENV_NAME' already exists — skipping creation"
+  else
+    info "Creating environment: $ENV_NAME"
+    mamba env create -f "$ENV_YML"
+    info "Environment '$ENV_NAME' created"
+  fi
 done
 
 # =============================================================================
-# Done
+# STEP 3: Detect conda env paths
+# =============================================================================
+info "Detecting conda environment paths..."
+
+get_env_path() {
+  local ENV_NAME="$1"
+  local PATH_FOUND
+  PATH_FOUND=$(mamba env list | grep "^${ENV_NAME}\s" | awk '{print $NF}')
+  if [[ -z "$PATH_FOUND" ]]; then
+    error "Could not find path for conda environment: $ENV_NAME"
+  fi
+  echo "$PATH_FOUND"
+}
+
+DANTE_LTR_PATH=$(get_env_path "dante_ltr")
+MEME_PATH=$(get_env_path "meme")
+
+info "dante_ltr env path: $DANTE_LTR_PATH"
+info "meme env path:      $MEME_PATH"
+
+# =============================================================================
+# STEP 4: Write paths into pipeline_config.sh
+# =============================================================================
+info "Writing paths into config.sh..."
+
+CONFIG="$GLORIA_ROOT/config.sh"
+
+# Add or update CONDA_ENV_DANTE_LTR
+if grep -q "^CONDA_ENV_DANTE_LTR=" "$CONFIG"; then
+  sed -i "s|^CONDA_ENV_DANTE_LTR=.*|CONDA_ENV_DANTE_LTR=\"${DANTE_LTR_PATH}\"|" "$CONFIG"
+else
+  echo "" >> "$CONFIG"
+  echo "# Conda environment paths (set by setup.sh)" >> "$CONFIG"
+  echo "CONDA_ENV_DANTE_LTR=\"${DANTE_LTR_PATH}\"" >> "$CONFIG"
+fi
+
+# Add or update CONDA_ENV_MEME
+if grep -q "^CONDA_ENV_MEME=" "$CONFIG"; then
+  sed -i "s|^CONDA_ENV_MEME=.*|CONDA_ENV_MEME=\"${MEME_PATH}\"|" "$CONFIG"
+else
+  echo "CONDA_ENV_MEME=\"${MEME_PATH}\"" >> "$CONFIG"
+fi
+
+# Add or update GLORIA_ROOT
+if grep -q "^GLORIA_ROOT=" "$CONFIG"; then
+    sed -i "s|^GLORIA_ROOT=.*|GLORIA_ROOT=\"${GLORIA_ROOT}\"|" "$CONFIG"
+  else
+  echo "GLORIA_ROOT="${GLORIA_ROOT}"" >> "$CONFIG"
+fi
+
+info "config.sh updated"
+
+# =============================================================================
+# STEP 5: Set GLORIA_ROOT in scripts/run_all.pbs
+# =============================================================================
+PBS_SCRIPT="$GLORIA_ROOT/scripts/run_all.pbs"
+
+if [[ -f "$PBS_SCRIPT" ]]; then
+  info "Setting GLORIA_ROOT in scripts/run_all.pbs..."
+  if grep -q "^GLORIA_ROOT=" "$PBS_SCRIPT"; then
+    sed -i "s|^GLORIA_ROOT=.*|GLORIA_ROOT=\"${GLORIA_ROOT}\"|" "$PBS_SCRIPT"
+  else
+    sed -i "s|^# =* MAIN|GLORIA_ROOT=\"${GLORIA_ROOT}\"\n\n# === MAIN|" "$PBS_SCRIPT"
+  fi
+  info "scripts/run_all.pbs updated"
+else
+  warn "scripts/run_all.pbs not found — skipping GLORIA_ROOT setup"
+fi
+
+# =============================================================================
+# SUMMARY
 # =============================================================================
 echo ""
-echo "============================================"
+echo "============================================================"
 echo " Setup complete"
-echo "============================================"
+echo "============================================================"
+echo "  GLORIA_ROOT      : $GLORIA_ROOT"
+echo "  dante_ltr env    : $DANTE_LTR_PATH"
+echo "  meme env         : $MEME_PATH"
+echo "  Config file      : $CONFIG"
 echo ""
-echo " Next steps:"
-echo "   1. Copy genome files into:  $GLORIA_ROOT/genomes/"
-echo "   2. Copy motif file to:      $GLORIA_ROOT/motifs.meme"
-echo "   3. Copy JASPAR mapping to:  $GLORIA_ROOT/jaspar_tf_families.csv"
-echo "   4. Submit a job:"
-echo "      qsub -v GENOMES=\"genome.fna\" $GLORIA_ROOT/scripts/run_all.pbs"
-echo ""
+echo "  Next step: submit a job with"
+echo "    qsub -v GENOMES=\"genome1.fna\" scripts/run_all.pbs"
+echo "============================================================"

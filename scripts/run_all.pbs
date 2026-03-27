@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -N gloria
 #PBS -q default
-#PBS -l select=1:ncpus=8:mem=100gb:scratch_local=200gb
-#PBS -l walltime=5:00:00
+#PBS -l select=1:ncpus=16:mem=200gb:scratch_local=800gb
+#PBS -l walltime=200:00:00
 #PBS -j oe
 
 # =============================================================================

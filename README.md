@@ -42,10 +42,7 @@ mamba env create -f envs/dante_ltr.yml
 mamba env create -f envs/meme.yml
 ```
 
-### 2. Place input files
-Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension)
-
-### 3. Configure
+### 2. Configure
 
 Open `config.sh` and set `CONDA_ENV_DANTE_LTR` and `CONDA_ENV_MEME` to the
 absolute paths of the conda environments you created in step 1:
@@ -56,21 +53,24 @@ mamba env list
 Copy the absolute paths of the environments and set them in `config.sh`:
 
 ```bash
-CONDA_ENV_DANTE_LTR="$HOME/.conda/envs/dante_ltr"
-CONDA_ENV_MEME="$HOME/.conda/envs/meme"
+CONDA_ENV_DANTE_LTR="path/.conda/envs/dante_ltr"
+CONDA_ENV_MEME="path/.conda/envs/meme"
 ```
-### 4. Setup root directory
+### 3. Setup root directory
 
 In scripts/run_all.pbs, set the `GLORIA_ROOT` variable to the absolute path of the
 gloria_tool directory:
 
 ```bash
-GLORIA_ROOT="/storage/brno2/home/NAME/work/gloria_tool"
+GLORIA_ROOT="path/gloria_tool"
 ```
 
 ---
 
 ## Running the pipeline
+
+### Place input files
+Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension)
 
 ```bash
 # Submit with default settings
