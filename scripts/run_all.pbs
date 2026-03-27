@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -N gloria
 #PBS -q default
-#PBS -l select=1:ncpus=16:mem=200gb:scratch_local=800gb
-#PBS -l walltime=200:00:00
+#PBS -l select=1:ncpus=4:mem=50gb:scratch_local=100gb
+#PBS -l walltime=2:00:00
 #PBS -j oe
 
 # =============================================================================
@@ -191,18 +191,15 @@ build_run_dir
 copy_inputs_to_scratch
 setup_exit_trap
 
-# Work from scratch directory — all scripts cd here implicitly
+# Work from scratch directory
 cd "$SCRATCHDIR"
 TIME_START=$(date +%s)
 
-# Export all config variables so R scripts can read them via Sys.getenv()
+# Export all config variables
 export NCPUS="${PBS_NCPUS:-${NCPUS}}"
 export SKIP_CONTROL="${SKIP_CONTROL:-0}"
 export GENOMES
 export RUN_DIR
-
-# R scripts read config.sh directly via load_config.R — no export needed.
-# We only export the variables that are not in config.sh or need runtime overrides.
 export JASPAR_FILE="$SCRATCHDIR/jaspar_tf_families.csv"
 
 echo "Cores: $NCPUS"

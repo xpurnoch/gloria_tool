@@ -20,10 +20,9 @@
 # =============================================================================
 set -euo pipefail
 
+MOTIFS="$SCRATCHDIR/motifs.meme"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../config.sh"
-
-MOTIFS="$SCRATCHDIR/motifs.meme"
 
 # Build list of genome paths from GENOMES variable (basenames only,
 # files were copied to SCRATCHDIR by run_all.pbs)
@@ -329,14 +328,23 @@ build_background_model() {
 }
 
 # ==========================================================
-# split_motif_file  /  launch_fimo_chunks  /  wait_for_fimo_chunks
-# merge_fimo_chunks  /  run_fimo_parallel
+# split_motif_file
 #
-# Parallel FIMO orchestration — splits the motif file into
-# N_CHUNKS chunks (round-robin), runs one FIMO process per chunk,
-# then merges all per-chunk fimo.tsv files into a single TSV.
-# set -e is disabled during background-job sections to allow
-# proper exit-code collection via wait().
+# Splits a MEME motif file into N_CHUNKS chunk files using
+# round-robin distribution so each chunk gets an equal share
+# of motifs regardless of their order in the file.
+#
+# The MEME file header (everything before the first MOTIF block)
+# is prepended to every chunk file so each chunk is a valid
+# standalone MEME file that FIMO can read independently.
+#
+# Sets caller-scoped variables FIMO_N_MOTIFS and FIMO_N_CHUNKS.
+# Returns 1 if no motifs are found.
+#
+# Arguments:
+#   $1  Path to input MEME motif file
+#   $2  Path to temporary working directory (must already exist)
+#   $3  Maximum number of chunks (will be capped to N_MOTIFS)
 # ==========================================================
 split_motif_file() {
   local MOTIFS_F="$1"
@@ -378,6 +386,24 @@ split_motif_file() {
   return 0
 }
 
+# ==========================================================
+# launch_fimo_chunks
+#
+# Launches one FIMO process per chunk file in the background.
+# Each process scans the full sequence file against its subset
+# of motifs and writes output to a per-chunk subdirectory.
+#
+# Must be called with set -e already disabled because background
+# subshells interact badly with errexit.
+#
+# Appends launched PIDs to the caller-scoped array FIMO_PIDS.
+#
+# Arguments:
+#   $1  Number of chunks
+#   $2  Path to temporary directory containing chunk_N.meme files
+#   $3  Path to input FASTA sequence file
+#   $4+ Extra flags forwarded to every FIMO call
+# ==========================================================
 launch_fimo_chunks() {
   local N_CHUNKS="$1"
   local TMPBASE="$2"
@@ -404,6 +430,16 @@ launch_fimo_chunks() {
   return 0
 }
 
+# ==========================================================
+# wait_for_fimo_chunks
+#
+# Waits for all background FIMO chunk processes to finish and
+# counts failures. Must be called with set -e already disabled.
+#
+# Reads PIDs from the caller-scoped array FIMO_PIDS.
+# Sets the caller-scoped variable FIMO_FAILED to the count of
+# failed chunks.
+# ==========================================================
 wait_for_fimo_chunks() {
   FIMO_FAILED=0
   for PID in "${FIMO_PIDS[@]}"; do
@@ -414,6 +450,23 @@ wait_for_fimo_chunks() {
   return 0
 }
 
+# ==========================================================
+# merge_fimo_chunks
+#
+# Merges per-chunk fimo.tsv files into a single output TSV
+# identical in format to a normal serial FIMO run.
+#
+# The column header is taken from the first chunk that produced
+# output. Comment lines (starting with #) are skipped in all
+# chunks. If no chunk produced any hits, writes an empty TSV
+# with the standard FIMO column header so downstream steps
+# always find a readable file.
+#
+# Arguments:
+#   $1  Number of chunks
+#   $2  Path to temporary directory containing fimo_out_N/
+#   $3  Path to final merged output TSV
+# ==========================================================
 merge_fimo_chunks() {
   local N_CHUNKS="$1"
   local TMPBASE="$2"
@@ -444,6 +497,24 @@ merge_fimo_chunks() {
   return 0
 }
 
+# ==========================================================
+# run_fimo_parallel
+#
+# Top-level orchestrator for parallel FIMO execution.
+# Calls split_motif_file, launch_fimo_chunks, wait_for_fimo_chunks,
+# and merge_fimo_chunks in sequence using shared caller-scoped
+# variables (FIMO_N_MOTIFS, FIMO_N_CHUNKS, FIMO_PIDS, FIMO_FAILED).
+#
+# set -e is disabled for the duration of this function and
+# restored before every return path.
+#
+# Arguments:
+#   $1  MEME motif file
+#   $2  Input FASTA sequences
+#   $3  Final output directory (e.g. FIMO_LTR)
+#   $4  Number of parallel chunks (typically NCPUS)
+#   $5+ Extra flags forwarded to every FIMO call
+# ==========================================================
 run_fimo_parallel() {
   set +e
 
