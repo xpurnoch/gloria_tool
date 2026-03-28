@@ -9,11 +9,12 @@ in LTR retrotransposon families across one or more plant genomes.
 
 ```
 gloria_tool/
-├── config.sh                  ← All parameters and thresholds (edit here!)
+├── config.sh                  ← All parameters and thresholds for Bash scripts
+├── config.R                   ← All parameters and thresholds for R scripts
 ├── motifs.meme                ← MEME-format TF binding motif file
-├── jaspar_tf_families.csv     ← JASPAR TF-to-family mapping, semicolon-separated
+├── jaspar_tf_families.csv     ← JASPAR TF-to-family mapping file
 ├── genomes/                   ← Place genome FASTA files here (.fna / .fa / .fasta)
-├── output/                    ← Run results are written here
+├── output/                    ← Results are written here
 ├── envs/
 │   ├── dante_ltr.yml          ← Conda environment for DANTE, HMMER, bedtools, R
 │   └── meme.yml               ← Conda environment for FIMO (MEME suite)
@@ -33,36 +34,10 @@ gloria_tool/
 ---
 
 ## First-time setup
-
-### 1. Create conda environments on MetaCentrum
-
-```bash
-module add mambaforge
-mamba env create -f envs/dante_ltr.yml
-mamba env create -f envs/meme.yml
-```
-
-### 2. Configure
-
-Open `config.sh` and set `CONDA_ENV_DANTE_LTR` and `CONDA_ENV_MEME` to the
-absolute paths of the conda environments you created in step 1:
+Run `setup.sh` to create conda environments and set root directory
 
 ```bash
-mamba env list
-```
-Copy the absolute paths of the environments and set them in `config.sh`:
-
-```bash
-CONDA_ENV_DANTE_LTR="path/.conda/envs/dante_ltr"
-CONDA_ENV_MEME="path/.conda/envs/meme"
-```
-### 3. Setup root directory
-
-In scripts/run_all.pbs, set the `GLORIA_ROOT` variable to the absolute path of the
-gloria_tool directory:
-
-```bash
-GLORIA_ROOT="path/gloria_tool"
+bash setup.sh
 ```
 
 ---
@@ -73,7 +48,6 @@ GLORIA_ROOT="path/gloria_tool"
 Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension)
 
 ```bash
-# Submit with default settings
 qsub -v "GENOMES=potato.fna" scripts/run_all.pbs
 
 ```

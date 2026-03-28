@@ -7,7 +7,6 @@
 # This file is sourced automatically by all bash scripts:
 #   source "$SCRIPT_DIR/../config.sh"
 # =============================================================================
-
 GLORIA_ROOT="/storage/brno2/home/xpurnoch/work/gloria_tool"
 
 # =============================================================================
@@ -24,31 +23,14 @@ JASPAR_FILE="$GLORIA_ROOT/jaspar_tf_families.csv"
 # CONDA — resolved automatically, no manual editing needed
 # Run `mamba info --base` to verify CONDA_BASE on your system
 # =============================================================================
-_resolve_conda_base() {
-  if command -v conda &>/dev/null; then
-    conda info --base 2>/dev/null && return
-  fi
-  if command -v mamba &>/dev/null; then
-    mamba info --base 2>/dev/null && return
-  fi
-  for _p in /afs/ics.muni.cz/software/mambaforge/*/; do
-    [[ -f "${_p}etc/profile.d/conda.sh" ]] && echo "${_p%/}" && return
-  done
-  for _p in "$HOME/mambaforge" "$HOME/miniforge3" "$HOME/miniconda3" "$HOME/anaconda3"; do
-    [[ -f "${_p}/etc/profile.d/conda.sh" ]] && echo "$_p" && return
-  done
-  return 1
-}
-CONDA_BASE="$(_resolve_conda_base)"
-unset -f _resolve_conda_base
-
+CONDA_BASE="$(mamba info --base 2>/dev/null)"
 if [[ -z "$CONDA_BASE" ]]; then
-  echo "[config.sh] ERROR: Cannot find conda base. Set CONDA_BASE manually." >&2
+  echo "[config.sh] ERROR: Cannot find conda base." >&2
   exit 1
 fi
 
 # Paths to conda environments — update if you installed them elsewhere
-# Confirm with: conda env list
+# Confirm with: mamba env list
 CONDA_ENV_DANTE_LTR="/storage/brno2/home/xpurnoch/.conda/envs/dante_ltr"
 CONDA_ENV_MEME="/storage/brno2/home/xpurnoch/.conda/envs/meme"
 

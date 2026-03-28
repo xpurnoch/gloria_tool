@@ -1,18 +1,10 @@
 # =============================================================================
 # config.R — GLORIA pipeline parameters for R scripts
 #
-# This file mirrors the numerical parameters from config.sh.
-# If you change a value in config.sh, change it here too.
-#
 # Sourced at the top of every R script:
 #   source(file.path(.this_script_dir, "config.R"))
 # =============================================================================
 
-# ---------------------------------------------------------------------------
-# PATHS
-# .this_script_dir is set by each R script before sourcing this file,
-# pointing to the scripts/ directory — config.R lives one level up.
-# ---------------------------------------------------------------------------
 JASPAR_FILE <- normalizePath(
   file.path(.this_script_dir, "..", "jaspar_tf_families.csv"),
   mustWork = FALSE
