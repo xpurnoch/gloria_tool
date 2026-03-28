@@ -90,6 +90,6 @@ output/<genome_name>/
 
 ## Customising parameters
 
-All numerical thresholds live in config files. See `config.sh` and `config.R` for details.
+All numerical thresholds are located in the config files. See `config.sh` and `config.R` for details.
 
 
