@@ -34,7 +34,7 @@ gloria_tool/
 ---
 
 ## First-time setup
-Run `setup.sh` from `gloria_tool/` directory to create conda environments and set root directory
+Run `setup.sh` from `gloria_tool/` directory to create conda environments and set root directory:
 
 ```bash
 bash setup.sh
@@ -45,8 +45,10 @@ bash setup.sh
 ## Running the pipeline
 
 ### Place input files
-Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension)
+Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension).
 
+### Run the pipeline
+Run `run_all.pbs` from `gloria_tool/` directory to submit job to the PBS cluster:
 ```bash
 qsub -v "GENOMES=potato.fna" scripts/run_all.pbs
 
