@@ -78,10 +78,6 @@ output/<genome_name>/
 
 ## Customising parameters
 
-All numerical thresholds live in config files. You never need to edit the scripts
-themselves. Key parameters:
+All numerical thresholds live in config files. See `config.sh` and `config.R` for details.
 
-| Parameter | Default | Controls |
-|-----------|---------|----------|
 
-See `config.sh` and `config.R` for the full list with descriptions.
