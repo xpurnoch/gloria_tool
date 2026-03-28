@@ -48,10 +48,14 @@ bash setup.sh
 Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension).
 
 ### Run the pipeline
-Run `run_all.pbs` from `gloria_tool/` directory to submit job to the PBS cluster:
+Run `scripts/run_all.pbs` from `gloria_tool/` directory to submit job to the PBS cluster:
 ```bash
 qsub -v "GENOMES=potato.fna" scripts/run_all.pbs
 
+```
+For multiple genomes, use a space-separated list:
+```bash
+qsub -v "GENOMES=potato.fna tomato.fna" scripts/run_all.pbs
 ```
 
 PBS resources are set in the `#PBS` header of `run_all.pbs`. Adjust `ncpus`,
