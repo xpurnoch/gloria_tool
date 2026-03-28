@@ -58,6 +58,12 @@ For multiple genomes, use a space-separated list:
 qsub -v "GENOMES=potato.fna tomato.fna" scripts/run_all.pbs
 ```
 
+### Monitor the job
+Use `qstat` to monitor the job status:
+```bash
+qstat -u $USER
+```
+
 PBS resources are set in the `#PBS` header of `run_all.pbs`. Adjust `ncpus`,
 `mem`, `scratch_local`, and `walltime` to match your cluster and data size.
 
