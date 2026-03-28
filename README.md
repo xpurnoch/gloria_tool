@@ -34,7 +34,7 @@ gloria_tool/
 ---
 
 ## First-time setup
-Run `setup.sh` to create conda environments and set root directory
+Run `setup.sh` from `gloria_tool/` directory to create conda environments and set root directory
 
 ```bash
 bash setup.sh
