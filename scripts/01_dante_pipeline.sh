@@ -10,7 +10,7 @@
 # All parameters are read from config.sh (sourced automatically).
 # Genome files are read from GENOMES_DIR, motifs from MOTIFS_FILE.
 #
-# Outputs (written to RUN_DIR, set by run_all.pbs):
+# Outputs:
 #   LTR_5prime.bed          Merged BED of all full LTR regions (all genomes)
 #   LTR_5prime.fa           FASTA sequences of all full LTR regions
 #   merged_genomes.fasta    Concatenated prefixed genome sequences
@@ -36,8 +36,7 @@ done
 
 echo "[STEP 1/9] DANTE + LTR extraction + FIMO (${#GENOMES_ARRAY[@]} genome(s))"
 
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+export PATH="$CONDA_ENV_DANTE_LTR/bin:$PATH"
 
 export TMPDIR="${RUN_DIR}/tmp"
 export TEMP="$TMPDIR"
@@ -314,8 +313,7 @@ extract_ltr_sequences() {
 # Model order is set by MARKOV_ORDER in config.sh (default: 2).
 # ==========================================================
 build_background_model() {
-  source "${CONDA_BASE}/etc/profile.d/conda.sh"
-  conda activate "$CONDA_ENV_MEME" >/dev/null 2>&1
+  export PATH="$CONDA_ENV_MEME/bin:$PATH"
 
   fasta-get-markov -m "$MARKOV_ORDER" LTR_5prime.fa > ltr_background.txt 2>/dev/null
 

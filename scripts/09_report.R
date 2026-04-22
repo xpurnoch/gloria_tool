@@ -30,8 +30,8 @@ suppressPackageStartupMessages(library(dplyr))
 source(file.path(.this_script_dir, "..", "config.R"))
 
 # Map config.sh names to local aliases used throughout report functions
-Q_THRESH                    <- REPORT_Q_THRESH
-OR_THRESH                   <- REPORT_OR_THRESH
+Q_THRESH  <- REPORT_Q_THRESH
+OR_THRESH <- REPORT_OR_THRESH
 
 # =============================================================================
 # FORMATTING HELPERS
@@ -60,6 +60,10 @@ print_table <- function(df) {
 
 fmt_qvalue <- function(x)
   ifelse(x == 0, "< 2.22e-308", formatC(x, format = "e", digits = 2))
+
+make_lbl <- function(text) {
+  formatC(text, width = -70, flag = "-")
+}
 
 # =============================================================================
 # DATA LOADING
@@ -154,7 +158,7 @@ report_ltr_counts <- function() {
     arrange(desc(n_total))
   print_table(family_counts)
 
-  # Dominant family warning (threshold from config.sh)
+  # Dominant family warning (threshold from config.R)
   dominant_fam <- family_counts %>%
     mutate(pct = n_total / sum(n_total)) %>% filter(pct > REPORT_DOMINANT_FAMILY_FRAC)
   if (nrow(dominant_fam) > 0) {
@@ -175,7 +179,7 @@ report_ltr_counts <- function() {
     print_table(genome_counts)
   }
 
-  # Small family warning (threshold from config.sh)
+  # Small family warning (threshold from config.R)
   small_families <- family_counts %>% filter(n_total < REPORT_SMALL_FAMILY_WARN)
   if (nrow(small_families) > 0) {
     cat(sprintf("\n  WARNING: %d familie(s) have fewer than %d LTR regions:\n",
@@ -201,22 +205,23 @@ report_basic_overview <- function(df) {
   cat(sprintf("\n"))
   cat(sprintf("  Enriched          (q < %.2f, OR > 1)     : %s\n", Q_THRESH, fmt_pct(n_enrich, n_total)))
   cat(sprintf("  Depleted          (q < %.2f, OR < 1)     : %s\n", Q_THRESH, fmt_pct(n_deplet, n_total)))
-  cat(sprintf("  Strongly enriched (q < %.2f, OR > %.0f)     : %s\n",
+  cat(sprintf("  Strongly enriched (q < %.2f, OR > %.0f)  : %s\n",
               Q_THRESH, OR_THRESH, fmt_pct(n_strong, n_total)))
 
   list(n_total = n_total, n_families = n_fam, n_tfs = n_tfs,
        n_enrich = n_enrich, n_deplet = n_deplet, n_strong = n_strong)
 }
 
-report_top20 <- function(df) {
-  section_sep("TOP 20 STRONGEST ASSOCIATIONS  (q < threshold, ranked by OR)")
-  top20 <- df %>%
+report_top_associations <- function(df) {
+  section_sep(sprintf("TOP %d STRONGEST ASSOCIATIONS  (q < threshold, ranked by OR)",
+                      REPORT_TOP_N_ASSOCIATIONS))
+  top_df <- df %>%
     filter(q_value < Q_THRESH, !is.na(log2OR)) %>%
-    arrange(desc(log2OR)) %>% slice_head(n = 20) %>%
+    arrange(desc(log2OR)) %>% slice_head(n = REPORT_TOP_N_ASSOCIATIONS) %>%
     transmute(family, tf, log2OR = round(log2OR, 2), q_value = fmt_qvalue(q_value),
-              n_hits = ltr_in_family_with_tf,
+              n_hits   = ltr_in_family_with_tf,
               n_family = ltr_in_family_with_tf + ltr_in_family_without_tf)
-  print_table(top20)
+  print_table(top_df)
 }
 
 report_per_family <- function(df) {
@@ -251,7 +256,8 @@ report_consistent_tfs <- function(df) {
               consistency_pct = round(100 * sum(q_value < Q_THRESH, na.rm = TRUE) / n(), 1),
               .groups         = "drop") %>%
     filter(n_tested >= REPORT_MIN_TESTED_FAMILIES) %>%
-    arrange(desc(n_sig), desc(mean_log2OR)) %>% slice_head(n = 20)
+    arrange(desc(n_sig), desc(mean_log2OR)) %>%
+    slice_head(n = REPORT_TOP_N_CONSISTENT_TFS)
 
   cat(sprintf("  TFs enriched in the most LTR families (min. %d tested families):\n\n",
               REPORT_MIN_TESTED_FAMILIES))
@@ -295,7 +301,7 @@ report_gsea <- function(gsea_file) {
       transmute(TF_family = pathway, NES = round(NES, 3),
                 padj = formatC(padj, format = "e", digits = 2), n_TF = size))
     cat("\n  Leading edge TFs (top contributors to enrichment):\n\n")
-    for (i in seq_len(min(5, nrow(gsea_sig))))
+    for (i in seq_len(min(REPORT_TOP_N_GSEA_LEADING, nrow(gsea_sig))))
       cat(sprintf("  %s:\n    %s\n\n", gsea_sig$pathway[i], gsea_sig$leadingEdge[i]))
   }
 }
@@ -309,36 +315,61 @@ report_ltr_vs_ctrl <- function() {
   cat("------------------------------------------------------------\n")
   counts <- table(comp$category)
   n_comp <- nrow(comp)
+
   categories <- list(
     list(key = "LTR-specific",
-         lbl = "LTR-specific                (q < thresh, log2OR_ltr > 1, log2OR_ctrl < 1) "),
+         lbl = make_lbl(sprintf("LTR-specific (q < thresh, log2OR_ltr > %.1f, log2OR_ctrl < %.1f)",
+                                LTR_SPECIFIC_LOG2OR, LTR_SPECIFIC_LOG2OR))),
     list(key = "Shared (possible artefact)",
-         lbl = "Shared (possible artefact)  (q < thresh, log2OR_ltr > 1, log2OR_ctrl >= 1)"),
+         lbl = make_lbl(sprintf("Shared (q < thresh, log2OR_ltr > %.1f, log2OR_ctrl >= %.1f)",
+                                LTR_SPECIFIC_LOG2OR, LTR_SPECIFIC_LOG2OR))),
     list(key = "Depleted in LTR",
-         lbl = "Depleted in LTR             (q < thresh, log2OR_ltr < -1)                 "),
+         lbl = make_lbl(sprintf("Depleted in LTR (q < thresh, log2OR_ltr < %.1f)",
+                                LTR_DEPLETED_LOG2OR))),
     list(key = "Not significant",
-         lbl = "Not significant             (q > thresh)                                  ")
+         lbl = make_lbl("Not significant (q > thresh)"))
   )
+
   for (cat_item in categories) {
     n <- if (cat_item$key %in% names(counts)) counts[[cat_item$key]] else 0
     cat(sprintf("  %s : %d (%.1f%%)\n", cat_item$lbl, n, 100 * n / n_comp))
   }
 
-  cat("\n  Top 10 LTR-specific associations:\n\n")
-  top_sp <- head(comp[comp$category == "LTR-specific" & is.finite(comp$log2OR_ltr),
-                       ][order(-comp[comp$category == "LTR-specific" &
-                                     is.finite(comp$log2OR_ltr), "log2OR_ltr"]), ], 10)
+  # Top N LTR-specific associations
+  cat(sprintf("\n  Top %d LTR-specific associations:\n\n", REPORT_TOP_N_LTR_SPECIFIC))
+  ltr_sp_rows <- comp[comp$category == "LTR-specific" & is.finite(comp$log2OR_ltr), ]
+  top_sp <- head(ltr_sp_rows[order(-ltr_sp_rows$log2OR_ltr), ], REPORT_TOP_N_LTR_SPECIFIC)
   if (nrow(top_sp) > 0) {
     fw <- max(nchar(top_sp$family), nchar("family")) + 2
     tw <- max(nchar(top_sp$tf),     nchar("tf"))     + 2
-    cat(sprintf("  %-*s  %-*s  %10s  %10s  %11s\n", fw,"family", tw,"tf",
-                "ltr_log2OR","ctrl_log2OR","q_ltr"))
+    cat(sprintf("  %-*s  %-*s  %10s  %10s  %11s\n", fw, "family", tw, "tf",
+                "ltr_log2OR", "ctrl_log2OR", "q_ltr"))
     cat(sprintf("  %s\n", strrep("-", fw + tw + 37)))
     for (i in seq_len(nrow(top_sp)))
       cat(sprintf("  %-*s  %-*s  %10.2f  %10.2f  %11s\n",
                   fw, top_sp$family[i], tw, top_sp$tf[i],
                   top_sp$log2OR_ltr[i], top_sp$log2OR_ctrl[i],
                   fmt_qvalue(top_sp$q_value_ltr[i])))
+  } else {
+    cat("  (none)\n")
+  }
+
+  # Top N shared associations (possible artefacts)
+  cat(sprintf("\n  Top %d shared associations (possible artefacts):\n\n", REPORT_TOP_N_SHARED))
+  shared_rows <- comp[comp$category == "Shared (possible artefact)" & is.finite(comp$log2OR_ltr), ]
+  top_sh <- head(shared_rows[order(-shared_rows$log2OR_ltr), ], REPORT_TOP_N_SHARED)
+  if (nrow(top_sh) > 0) {
+    fw <- max(nchar(top_sh$family), nchar("family")) + 2
+    tw <- max(nchar(top_sh$tf),     nchar("tf"))     + 2
+    cat(sprintf("  %-*s  %-*s  %10s  %10s\n", fw, "family", tw, "tf",
+                "ltr_log2OR", "ctrl_log2OR"))
+    cat(sprintf("  %s\n", strrep("-", fw + tw + 26)))
+    for (i in seq_len(nrow(top_sh)))
+      cat(sprintf("  %-*s  %-*s  %10.2f  %10.2f\n",
+                  fw, top_sh$family[i], tw, top_sh$tf[i],
+                  top_sh$log2OR_ltr[i], top_sh$log2OR_ctrl[i]))
+  } else {
+    cat("  (none)\n")
   }
 }
 
@@ -360,7 +391,7 @@ report_summary <- function(df, counts, family_summary, tf_summary, gsea_file) {
   cat(sprintf("  Most consistent TF                : %s (%d families, mean log2OR = %.2f)\n",
               tf_summary$tf[1], tf_summary$n_sig[1], tf_summary$mean_log2OR[1]))
   if (file.exists(gsea_file)) {
-    gsea_check <- tryCatch(read.table(gsea_file, sep="\t", header=TRUE, stringsAsFactors=FALSE),
+    gsea_check <- tryCatch(read.table(gsea_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE),
                            error = function(e) NULL)
     if (!is.null(gsea_check) && "padj" %in% colnames(gsea_check))
       cat(sprintf("  Significant TF families (GSEA)    : %d\n",
@@ -387,7 +418,7 @@ has_ci <- all(c("ci_low","ci_high") %in% colnames(df))
 report_header()
 report_ltr_counts()
 counts         <- report_basic_overview(df)
-report_top20(df)
+report_top_associations(df)
 family_summary <- report_per_family(df)
 tf_summary     <- report_consistent_tfs(df)
 report_no_signal_families(family_summary)

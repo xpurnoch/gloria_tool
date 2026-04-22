@@ -50,8 +50,7 @@ echo "[STEP 2/9] HMMER Solo LTR detection + FIMO"
 N_GFF=$(ls genome_*/dante_ltr_results.gff3 2>/dev/null | wc -l)
 [[ $N_GFF -eq 0 ]] && { echo "[ERROR] No dante_ltr_results.gff3 found in genome_* dirs"; exit 25; }
 
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+export PATH="$CONDA_ENV_DANTE_LTR/bin:$PATH"
 
 mkdir -p hmmer_profiles family_fastas
 
@@ -278,7 +277,7 @@ build_hmm_profile() {
   local ALN="hmmer_profiles/${FAMILY}.aln"
   local HMM="hmmer_profiles/${FAMILY}.hmm"
   local N_SEQS
-  N_SEQS=$(grep -c '^>' "$FA" 2>/dev/null || echo 0)
+  N_SEQS=$(grep -c '^>' "$FA" 2>/dev/null || N_SEQS=0)
 
   if [[ $N_SEQS -lt $MIN_SEQS ]]; then
     echo "    [SKIP] $FAMILY: only $N_SEQS sequence(s) — below MIN_SEQS_FOR_PROFILE=$MIN_SEQS"
@@ -313,11 +312,16 @@ build_hmm_profile() {
     ' "$ALN" > "$ALN_CLEAN" 2>/dev/null
 
     local N_CLEAN
-    N_CLEAN=$(grep -c '^>' "$ALN_CLEAN" 2>/dev/null || echo 0)
+    N_CLEAN=$(grep -c '^>' "$ALN_CLEAN" 2>/dev/null || N_CLEAN=0)
 
     if [[ "$N_CLEAN" -eq 0 ]]; then
-      echo "    [WARN] All sequences gap-only in alignment for $FAMILY -- using --singlemx fallback"
-      hmmbuild --singlemx --dna --cpu 1 -n "$FAMILY" "$HMM" "$FA" >/dev/null 2>&1
+        echo "    [WARN] All sequences gap-only in alignment for $FAMILY -- using --singlemx fallback"
+        hmmbuild --singlemx --dna --cpu 1 -n "$FAMILY" "$HMM" "$FA" >/dev/null 2>&1
+        if ! hmmstat "$HMM" >/dev/null 2>&1; then
+            echo "    [INFO] HMM profile invalid for $FAMILY — skipping"
+            rm -f "$HMM"
+            return 0
+        fi
     elif [[ "$N_CLEAN" -eq 1 ]]; then
       hmmbuild --singlemx --dna --cpu 1 -n "$FAMILY" "$HMM" "$ALN_CLEAN" >/dev/null 2>&1
     else
@@ -326,7 +330,7 @@ build_hmm_profile() {
   fi
 
   if [[ ! -s "$HMM" ]]; then
-    echo "    [WARN] hmmbuild failed for $FAMILY"
+    echo "    [INFO] HMM profile skipped for $FAMILY — alignment insufficient"
     return 0
   fi
   echo "    Profile built: $FAMILY ($N_SEQS seqs)"
@@ -388,9 +392,14 @@ run_nhmmer_profile() {
     "$HMM" \
     "$GENOME" \
     >/dev/null 2>&1
+  local NHMMER_RC=$?
 
-  if [[ $? -ne 0 ]] || [[ ! -s "$OUTFILE" ]]; then
-    echo "    [WARN] nhmmer failed or no hits for $FAMILY"
+  if [[ $NHMMER_RC -ne 0 ]]; then
+    echo "    [WARN] nhmmer failed for $FAMILY (exit $NHMMER_RC) — skipping"
+    return 0
+  fi
+  if [[ ! -s "$OUTFILE" ]]; then
+    echo "    [WARN] nhmmer produced no hits for $FAMILY"
     return 0
   fi
 
@@ -688,8 +697,7 @@ extract_solo_ltr_sequences
 
 # Switch to meme environment for FIMO.
 # Must happen at top level so PATH is inherited by all background FIMO subshells.
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_MEME" >/dev/null 2>&1
+export PATH="$CONDA_ENV_MEME/bin:$PATH"
 
 run_fimo_solo_ltr "$MOTIFS" "$N_CORES"
 print_summary

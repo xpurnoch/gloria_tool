@@ -26,8 +26,8 @@ BH_FDR_THRESHOLD         <- 0.05   # Benjamini-Hochberg FDR threshold
 # ---------------------------------------------------------------------------
 # STEP 05 — LTR vs control comparison
 # ---------------------------------------------------------------------------
-LTR_SPECIFIC_LOG2OR  <-  1    # log2(OR) threshold for LTR-specific category
-LTR_DEPLETED_LOG2OR  <- -1    # log2(OR) threshold for depleted category
+LTR_SPECIFIC_LOG2OR  <-  1.5    # log2(OR) threshold for LTR-specific category
+LTR_DEPLETED_LOG2OR  <- -1.5    # log2(OR) threshold for depleted category
 
 # ---------------------------------------------------------------------------
 # STEP 07 — fgsea
@@ -40,19 +40,28 @@ GSEA_SEED      <- 42       # random seed for reproducibility
 # ---------------------------------------------------------------------------
 # STEP 08 — Plots
 # ---------------------------------------------------------------------------
-PLOT_Q_THRESH         <- 0.05     # significance threshold
-PLOT_OR_THRESH        <- 2.0      # strong enrichment threshold
-PLOT_Q_NETWORK        <- 0.0001   # stricter threshold for network plot
-PLOT_TOP_N_TFS        <- 20L      # top TFs in heatmap and network
-PLOT_MIN_HITS_TF      <- 10L      # min hits for TF to appear in heatmap
-PLOT_TOP_N_GSEA_BAR   <- 15L      # max families in GSEA barplot
-PLOT_TOP_N_GSEA_CURVES <- 4L      # enrichment curves shown
+PLOT_Q_THRESH          <- 0.05     # significance threshold for all plots
+PLOT_OR_THRESH         <- 2.0      # strong enrichment threshold (OR > this)
+PLOT_Q_NETWORK         <- 0.0001   # stricter threshold for network plot
+PLOT_TOP_N_TFS         <- 20L      # top TFs shown in heatmap and network
+PLOT_MIN_HITS_TF       <- 10L      # min hits for TF to appear in heatmap
+PLOT_TOP_N_GSEA_BAR    <- 15L      # max families shown in GSEA barplot
+PLOT_TOP_N_GSEA_CURVES <- 4L       # enrichment curves shown in GSEA panel
+PLOT_DPI               <- 300L     # resolution for all saved plots
+PLOT_SCATTER_XLIM      <- c(-6, 8)    # x-axis limits for LTR vs ctrl scatter
+PLOT_SCATTER_YLIM      <- c(-8, 22)   # y-axis limits for LTR vs ctrl scatter
+PLOT_GSEA_NCOLS        <- 2L       # columns in GSEA enrichment curves panel
 
 # ---------------------------------------------------------------------------
 # STEP 09 — Report
 # ---------------------------------------------------------------------------
-REPORT_Q_THRESH              <- 0.05   # significance threshold
-REPORT_OR_THRESH             <- 2.0    # strong enrichment threshold
-REPORT_MIN_TESTED_FAMILIES   <- 3L     # min families for consistent TF table
-REPORT_SMALL_FAMILY_WARN     <- 50L    # family size warning threshold
-REPORT_DOMINANT_FAMILY_FRAC  <- 0.80   # dominant family warning threshold
+REPORT_Q_THRESH             <- 0.05   # significance threshold used in report
+REPORT_OR_THRESH            <- 2.0    # strong enrichment threshold (OR > this)
+REPORT_MIN_TESTED_FAMILIES  <- 3L     # min families tested for consistent TF table
+REPORT_SMALL_FAMILY_WARN    <- 50L    # warn if family has fewer LTR regions than this
+REPORT_DOMINANT_FAMILY_FRAC <- 0.80   # warn if one family exceeds this fraction of all LTRs
+REPORT_TOP_N_ASSOCIATIONS   <- 20L    # rows in "Top N strongest associations" table
+REPORT_TOP_N_CONSISTENT_TFS <- 20L    # rows in "Top N consistent TFs" table
+REPORT_TOP_N_LTR_SPECIFIC   <- 10L    # rows in "Top N LTR-specific" ctrl section
+REPORT_TOP_N_SHARED         <- 5L     # rows in "Top N shared artefacts" ctrl section
+REPORT_TOP_N_GSEA_LEADING   <- 5L     # leading edge families printed in GSEA section

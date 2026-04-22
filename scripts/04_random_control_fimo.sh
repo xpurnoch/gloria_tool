@@ -45,8 +45,7 @@ echo "[STEP 4/9] Generate controls + FIMO on controls"
 [[ ! -s merged_genomes.fasta.fai ]] && { echo "[ERROR] merged_genomes.fasta.fai missing"; exit 12; }
 [[ ! -s "$MOTIFS"                ]] && { echo "[ERROR] Motifs file missing: $MOTIFS";     exit 13; }
 
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+export PATH="$CONDA_ENV_DANTE_LTR/bin:$PATH"
 
 # ==========================================================
 # run_fimo_parallel  (same logic as steps 01 and 02)
@@ -305,8 +304,7 @@ run_fimo_controls() {
 
   echo "  Running parallel FIMO on controls — $N_CHUNKS chunks..."
 
-  source "${CONDA_BASE}/etc/profile.d/conda.sh"
-  conda activate "$CONDA_ENV_MEME" >/dev/null 2>&1
+  export PATH="$CONDA_ENV_MEME/bin:$PATH"
 
   run_fimo_parallel \
     "$MOTIFS_F" \

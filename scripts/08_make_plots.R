@@ -31,20 +31,23 @@ cat(sprintf("    PLOT_Q_THRESH=%s  PLOT_OR_THRESH=%s  PLOT_Q_NETWORK=%s\n",
             PLOT_Q_THRESH, PLOT_OR_THRESH, PLOT_Q_NETWORK))
 cat(sprintf("    PLOT_TOP_N_TFS=%d  PLOT_MIN_HITS_TF=%d\n",
             PLOT_TOP_N_TFS, PLOT_MIN_HITS_TF))
+cat(sprintf("    PLOT_DPI=%d\n", PLOT_DPI))
 
-ECDF_COLORS <- c("LTR" = "#3e2b6f", "RANDOM_GENOMIC" = "#f27070")
+ECDF_COLORS <- c("LTR" = "#03cafc", "RANDOM_GENOMIC" = "#f27070")
 
 # =============================================================================
 # make_clean_theme
 # =============================================================================
 make_clean_theme <- function() {
   theme_minimal(base_size = 14) +
-    theme(plot.title   = element_text(face = "bold", hjust = 0.5),
-          axis.title   = element_text(face = "bold"),
-          axis.text    = element_text(color = "black"),
-          panel.grid   = element_blank(),
-          axis.line    = element_line(color = "black", linewidth = 0.5),
-          legend.title = element_text(face = "bold"))
+    theme(plot.title      = element_text(face = "bold", hjust = 0.5),
+          axis.title      = element_text(face = "bold"),
+          axis.text       = element_text(color = "black"),
+          panel.grid      = element_blank(),
+          axis.line       = element_line(color = "black", linewidth = 0.5),
+          legend.title    = element_text(face = "bold"),
+          plot.background = element_rect(fill = "white", color = NA),
+          panel.background = element_rect(fill = "white", color = NA))
 }
 
 # =============================================================================
@@ -114,14 +117,14 @@ plot_heatmap <- function(fisher_df, top_tfs, clean_theme) {
     ggplot(heat_df, aes(family, tf, fill = score)) +
       geom_tile(color = "white", linewidth = 0.3) +
       scale_x_discrete(labels = lbl_map) +
-      scale_fill_gradientn(colours = c("#3e2b6f","#bdb3d4","#f27070","#f1a04b"),
+      scale_fill_gradientn(colours = c("#03cafc","#bdb3d4","#f27070","#f1a04b"),
                            name = "-log10(q)", na.value = "grey92") +
       labs(x = "LTR family", y = "TF",
            title = sprintf("TF Enrichment Heatmap  (top %d TFs, q < %.2f)",
                            PLOT_TOP_N_TFS, PLOT_Q_THRESH)) +
       clean_theme +
       theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9)),
-    width = 11, height = 8, dpi = 300)
+    width = 11, height = 8, dpi = PLOT_DPI, bg = "white")
   cat("  Plot saved: heatmap_topTFs.png\n")
 }
 
@@ -139,9 +142,9 @@ plot_violin_or_comparison <- function(fisher_df, genomic_fisher_df, clean_theme)
     mutate(dataset = factor(dataset, levels = c("LTR","RANDOM_GENOMIC")))
   if (nrow(or_comparison) == 0) return(invisible(NULL))
 
-  ltr_vals  <- or_comparison$log2OR[or_comparison$dataset == "LTR"]
-  geo_vals  <- or_comparison$log2OR[or_comparison$dataset == "RANDOM_GENOMIC"]
-  p_geo     <- if (length(geo_vals) > 0) wilcox.test(ltr_vals, geo_vals)$p.value else NA
+  ltr_vals <- or_comparison$log2OR[or_comparison$dataset == "LTR"]
+  geo_vals <- or_comparison$log2OR[or_comparison$dataset == "RANDOM_GENOMIC"]
+  p_geo    <- if (length(geo_vals) > 0) wilcox.test(ltr_vals, geo_vals)$p.value else NA
   cat(sprintf("  Wilcoxon LTR vs Genomic: p = %.2e\n", p_geo))
 
   ggsave("plots/violin_OR_comparison.png",
@@ -154,7 +157,7 @@ plot_violin_or_comparison <- function(fisher_df, genomic_fisher_df, clean_theme)
       labs(x = NULL, y = "Family Enrichment\nLog2(OR)",
            title = "Family Enrichment: LTR vs Genomic Control") +
       clean_theme + theme(legend.position = "none"),
-    width = 7, height = 6, dpi = 300)
+    width = 7, height = 6, dpi = PLOT_DPI, bg = "white")
   cat("  Plot saved: violin_OR_comparison.png\n")
 }
 
@@ -181,7 +184,7 @@ plot_per_genome_ecdf <- function(fisher_df, ltr, genomes, clean_theme) {
       clean_theme +
       theme(legend.position = "top",
             legend.background = element_rect(fill = "white", color = "black", linewidth = 0.3)),
-    width = 10, height = 7, dpi = 300)
+    width = 10, height = 7, dpi = PLOT_DPI, bg = "white")
   cat("  Plot saved: per_genome_ecdf.png\n")
 }
 
@@ -209,14 +212,20 @@ plot_family_enrichment_summary <- function(fisher_df, clean_theme) {
     ggplot(family_bar, aes(family, n, fill = direction)) +
       geom_col() + coord_flip() +
       geom_hline(yintercept = 0, color = "black", linewidth = 0.4) +
+      geom_text(
+        aes(label = ifelse(n != 0, abs(n), "")),
+        hjust = ifelse(family_bar$n >= 0, 1.2, -0.2),
+        size = 3.5,
+        color = "black") +
       scale_x_discrete(labels = lbl_map_fam) +
-      scale_fill_manual(values = c("enriched" = "#3e2b6f", "depleted" = "#f27070"),
+      scale_fill_manual(values = c("enriched" = "#03cafc", "depleted" = "#f27070"),
                         labels = c(sprintf("Enriched (OR > %.0f)", PLOT_OR_THRESH),
                                    "Depleted (OR < 1)")) +
       labs(x = NULL, y = sprintf("Significant TF Associations (q < %.2f)", PLOT_Q_THRESH),
            fill = NULL, title = "Enriched vs Depleted TF Associations") +
       clean_theme + theme(legend.position = "top", axis.text.y = element_text(size = 9)),
-    width = 10, height = max(5, n_distinct(fisher_df$family) * 0.5), dpi = 300)
+    width = 10, height = max(5, n_distinct(fisher_df$family) * 0.5),
+    dpi = PLOT_DPI, bg = "white")
   cat("  Plot saved: per_family_enrichment_summary.png\n")
 }
 
@@ -230,12 +239,20 @@ plot_gsea_results <- function(fg, stats, pathways, clean_theme) {
   top_bar <- gsea_sig %>% arrange(desc(abs(NES))) %>% slice_head(n = PLOT_TOP_N_GSEA_BAR)
   ggsave("plots/GSEA_barplot_top_families.png",
     ggplot(top_bar, aes(reorder(pathway, NES), NES, fill = NES)) +
-      geom_col(width = 0.7) + coord_flip() +
-      scale_fill_gradientn(colours = c("#3e2b6f","#bdb3d4","#f27070","#f1a04b"), guide = "none") +
+      geom_col(width = 0.7) +
+      geom_text(
+        aes(label = sprintf("%.2f", NES)),
+        hjust = ifelse(top_bar$NES >= 0, 1.15, -0.15),
+        size = 3.2,
+        color = "black") +
+      scale_fill_gradientn(colours = c("#03cafc","#bdb3d4","#f27070","#f1a04b"), guide = "none") +
       labs(x = NULL, y = "NES",
            title = sprintf("Top Enriched TF Families\n(padj < %.2f)", PLOT_Q_THRESH)) +
-      clean_theme,
-    width = 8, height = max(4, nrow(top_bar) * 0.4), dpi = 300)
+      coord_flip(clip = "off") +
+      clean_theme +
+      theme(plot.margin = margin(l = 40, r = 10, t = 10, b = 10, unit = "pt")),
+    width = 8, height = max(4, nrow(top_bar) * 0.4),
+    dpi = PLOT_DPI, bg = "white")
   cat("  Plot saved: GSEA_barplot_top_families.png\n")
 
   top_sets <- gsea_sig %>% arrange(desc(abs(NES))) %>%
@@ -249,18 +266,22 @@ plot_gsea_results <- function(fg, stats, pathways, clean_theme) {
       labs(title = set_name, subtitle = paste0("NES = ", nes_val, ", q ", padj_text),
            x = "Rank", y = "Enrichment score") +
       theme_minimal(base_size = 11) +
-      theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 10),
-            plot.subtitle = element_text(hjust = 0.5, size = 9),
-            panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(),
-            axis.line = element_line(color = "black", linewidth = 0.5))
+      theme(plot.title        = element_text(face = "bold", hjust = 0.5, size = 10),
+            plot.subtitle     = element_text(hjust = 0.5, size = 9),
+            panel.grid.minor  = element_blank(),
+            panel.grid.major.x = element_blank(),
+            axis.line         = element_line(color = "black", linewidth = 0.5),
+            plot.background   = element_rect(fill = "white", color = NA),
+            panel.background  = element_rect(fill = "white", color = NA))
   })
 
-  n_cols <- min(length(curve_plots), 2)
+  n_cols <- min(length(curve_plots), PLOT_GSEA_NCOLS)
   n_rows <- ceiling(length(curve_plots) / n_cols)
-  ggsave("plots/GSEA_enrichment_curves_top4.png",
+  ggsave(sprintf("plots/GSEA_enrichment_curves_top%d.png", PLOT_TOP_N_GSEA_CURVES),
          plot_grid(plotlist = curve_plots, ncol = n_cols, labels = "AUTO"),
-         width = 10, height = max(6, n_rows * 3.5), dpi = 300)
-  cat("  Plot saved: GSEA_enrichment_curves_top4.png\n")
+         width = 10, height = max(6, n_rows * 3.5),
+         dpi = PLOT_DPI, bg = "white")
+  cat(sprintf("  Plot saved: GSEA_enrichment_curves_top%d.png\n", PLOT_TOP_N_GSEA_CURVES))
 }
 
 # =============================================================================
@@ -294,7 +315,7 @@ plot_gc_qc <- function(clean_theme) {
       scale_x_discrete(labels = c("LTR","Genomic\nshuffle")) +
       labs(x = NULL, y = "GC fraction", title = "GC Content: LTR vs Genomic Control") +
       clean_theme + theme(legend.position = "none"),
-    width = 7, height = 6, dpi = 400)
+    width = 7, height = 6, dpi = PLOT_DPI, bg = "white")
 
   ggsave("plots/QC_GC_density.png",
     ggplot(gc_df, aes(gc, fill = dataset, color = dataset)) +
@@ -306,7 +327,7 @@ plot_gc_qc <- function(clean_theme) {
       clean_theme +
       theme(legend.position = "top", legend.direction = "horizontal",
             legend.title = element_blank()),
-    width = 9, height = 6.5, dpi = 400)
+    width = 9, height = 6.5, dpi = PLOT_DPI, bg = "white")
   cat("  Plots saved: QC_GC_violin.png, QC_GC_density.png\n")
 }
 
@@ -320,8 +341,10 @@ plot_ltr_vs_ctrl_scatter <- function(clean_theme) {
     return(invisible(NULL))
   }
   comparison <- read.table(comp_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-  scatter_colors <- c("LTR-specific" = "#2166ac", "Shared (possible artefact)" = "#d6604d",
-                      "Depleted in LTR" = "#4dac26", "Not significant" = "grey70")
+  scatter_colors <- c("LTR-specific"            = "#2166ac",
+                      "Shared (possible artefact)" = "#d6604d",
+                      "Depleted in LTR"          = "#4dac26",
+                      "Not significant"           = "grey70")
 
   ggsave("plots/ltr_vs_ctrl_scatter.png",
     ggplot(comparison, aes(x = log2OR_ctrl, y = log2OR_ltr, color = category)) +
@@ -331,14 +354,17 @@ plot_ltr_vs_ctrl_scatter <- function(clean_theme) {
       geom_point(alpha = 0.6, size = 1.5,
                  position = position_jitter(width = 0.15, height = 0.15)) +
       scale_color_manual(values = scatter_colors) +
-      scale_x_continuous(limits = c(-6, 8)) +
-      scale_y_continuous(limits = c(-8, 22)) +
+      scale_x_continuous(limits = PLOT_SCATTER_XLIM) +
+      scale_y_continuous(limits = PLOT_SCATTER_YLIM) +
       labs(title = "Enrichment LTR vs Genomic",
            x = "Genomic control\nLog2(OR)", y = "LTR families\nLog2(OR)", color = NULL) +
       theme_bw(base_size = 12) +
-      theme(legend.position = "bottom", panel.grid.minor = element_blank(),
-            plot.title = element_text(hjust = 0.5)),
-    width = 7, height = 7, dpi = 300)
+      theme(legend.position     = "bottom",
+            panel.grid.minor    = element_blank(),
+            plot.title          = element_text(hjust = 0.5),
+            plot.background     = element_rect(fill = "white", color = NA),
+            panel.background    = element_rect(fill = "white", color = NA)),
+    width = 7, height = 7, dpi = PLOT_DPI, bg = "white")
   cat("  Plot saved: ltr_vs_ctrl_scatter.png\n")
 }
 
@@ -377,7 +403,7 @@ plot_regulatory_network <- function(fisher_df, top_tfs, clean_theme) {
             axis.ticks = element_blank(), axis.line  = element_blank())
 
     ggsave("plots/core_regulatory_network_LTR_TF.png",
-           plot = p_net, width = 12, height = 8, dpi = 400, bg = "white")
+           plot = p_net, width = 12, height = 8, dpi = PLOT_DPI, bg = "white")
     cat("  Plot saved: core_regulatory_network_LTR_TF.png\n")
   })
 }

@@ -1,8 +1,8 @@
 #!/bin/bash
-#PBS -N gloria
+#PBS -N test_TRIPLE_fixed_02_profile_making
 #PBS -q default
-#PBS -l select=1:ncpus=4:mem=50gb:scratch_local=100gb
-#PBS -l walltime=2:00:00
+#PBS -l select=1:ncpus=16:mem=200gb:scratch_local=800gb
+#PBS -l walltime=100:00:00
 #PBS -j oe
 
 # =============================================================================
@@ -218,8 +218,8 @@ run_step 2 "HMMER Solo LTR detection + FIMO" \
 
 # --- Step 3: Fisher exact tests for TFBS enrichment ---
 # R is included in the dante_ltr conda environment — no separate module needed
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+source "${CONDA_BASE}/etc/profile.d/conda.sh" 2>/dev/null || true
+conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1 || true
 run_step 3 "TFBS enrichment (Fisher tests)" \
   Rscript "$SCRIPTS/03_tfbs_ltr_enrichment.R"
 
@@ -250,8 +250,8 @@ run_step 6 "GSEA preparation" \
   Rscript "$SCRIPTS/06_prepare_gsea.R"
 
 # --- Step 7: Run fgsea on TF families ---
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1
+source "${CONDA_BASE}/etc/profile.d/conda.sh" 2>/dev/null || true
+conda activate "$CONDA_ENV_DANTE_LTR" >/dev/null 2>&1 || true
 run_step 7 "GSEA analysis" \
   Rscript "$SCRIPTS/07_run_gsea.R"
 
