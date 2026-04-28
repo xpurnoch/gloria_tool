@@ -89,7 +89,7 @@ info "dante_ltr env path: $DANTE_LTR_PATH"
 info "meme env path:      $MEME_PATH"
 
 # =============================================================================
-# STEP 4: Write paths into pipeline_config.sh
+# STEP 4: Write paths into config.sh
 # =============================================================================
 info "Writing paths into config.sh..."
 
