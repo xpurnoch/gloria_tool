@@ -37,7 +37,7 @@ set -uo pipefail
 # =============================================================================
 # Source config — all parameters, thresholds, and derived paths come from here
 # =============================================================================
-GLORIA_ROOT="/storage/brno2/home/xpurnoch/work/gloria_tool"
+GLORIA_ROOT=""
 source "$GLORIA_ROOT/config.sh"
 
 SCRIPTS="$SCRIPTS_DIR"

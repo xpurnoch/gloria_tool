@@ -7,7 +7,7 @@
 # This file is sourced automatically by all bash scripts:
 #   source "$SCRIPT_DIR/../config.sh"
 # =============================================================================
-GLORIA_ROOT="/storage/brno2/home/xpurnoch/work/gloria_tool"
+GLORIA_ROOT=""
 
 # =============================================================================
 # PATHS — derived from GLORIA_ROOT, no manual editing needed
@@ -31,8 +31,8 @@ fi
 
 # Paths to conda environments — update if you installed them elsewhere
 # Confirm with: mamba env list
-CONDA_ENV_DANTE_LTR="/storage/brno2/home/xpurnoch/.conda/envs/dante_ltr"
-CONDA_ENV_MEME="/storage/brno2/home/xpurnoch/.conda/envs/meme"
+CONDA_ENV_DANTE_LTR=""
+CONDA_ENV_MEME=""
 
 # =============================================================================
 # COMPUTE RESOURCES
