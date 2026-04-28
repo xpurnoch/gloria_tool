@@ -1,8 +1,8 @@
 #!/bin/bash
-#PBS -N test_TRIPLE_fixed_02_profile_making
+#PBS -N gloria_tool
 #PBS -q default
-#PBS -l select=1:ncpus=16:mem=200gb:scratch_local=800gb
-#PBS -l walltime=100:00:00
+#PBS -l select=1:ncpus=8:mem=20gb:scratch_local=80gb
+#PBS -l walltime=10:00:00
 #PBS -j oe
 
 # =============================================================================
