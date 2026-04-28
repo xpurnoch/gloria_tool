@@ -50,7 +50,7 @@ Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension).
 ### Run the pipeline
 Run `scripts/run_all.pbs` from `gloria_tool/` directory to submit job to the PBS cluster:
 ```bash
-qsub -v "GENOMES=potato.fna" scripts/run_all.pbs
+qsub -v "GENOMES=test.fna" scripts/run_all.pbs
 
 ```
 For multiple genomes, use a space-separated list:
