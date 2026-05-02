@@ -62,7 +62,7 @@ for ENV_YML in envs/dante_ltr.yml envs/meme.yml; do
     info "Environment '$ENV_NAME' already exists — skipping creation"
   else
     info "Creating environment: $ENV_NAME"
-    mamba env create -f "$ENV_YML"
+    mamba env create -f "$ENV_YML" -y
     info "Environment '$ENV_NAME' created"
   fi
 done
