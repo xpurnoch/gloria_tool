@@ -423,7 +423,7 @@ run_all_nhmmer() {
   local GENOME="$1"
   local N_CORES="$2"
 
-  local GENOME_FIXED="${RUN_DIR}/merged_nhmmer_fixed.fa"
+  local GENOME_FIXED="${SCRATCHDIR}/merged_nhmmer_fixed.fa"
   awk '
     /^>/ { print; first=1; next }
     first { print "GATC" substr($0, 5); first=0; next }
