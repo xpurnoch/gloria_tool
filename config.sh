@@ -2,7 +2,7 @@
 # =============================================================================
 # config.sh — GLORIA pipeline configuration (bash scripts only)
 # =============================================================================
-GLORIA_ROOT="/storage/brno2/home/xpurnoch/work/gloria_tool"
+GLORIA_ROOT=""
 
 # =============================================================================
 # PATHS — derived from GLORIA_ROOT, no manual editing needed
