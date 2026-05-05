@@ -9,6 +9,7 @@ in LTR retrotransposon families across one or more plant genomes.
 
 ```
 gloria_tool/
+├── setup.sh                   ← Setup conda environments and set root directory
 ├── config.sh                  ← All parameters and thresholds for Bash scripts
 ├── config.R                   ← All parameters and thresholds for R scripts
 ├── motifs.meme                ← MEME-format TF binding motif file
@@ -28,7 +29,8 @@ gloria_tool/
     ├── 07_run_gsea.R
     ├── 08_make_plots.R
     ├── 09_report.R
-    └── run_all.pbs               ← PBS job submission script
+    ├── setup.pbs               ← PBS job scrcript for creating conda environments
+    └── run_all.pbs             ← PBS job script for running all steps
 ```
 
 ---
@@ -39,6 +41,7 @@ Run `setup.sh` from `gloria_tool/` directory to create conda environments and se
 ```bash
 bash setup.sh
 ```
+This step may take a while to complete. (Approximately 40 minutes.)
 
 ---
 

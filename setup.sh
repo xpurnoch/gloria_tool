@@ -7,7 +7,6 @@
 #   bash setup.sh
 #
 # This script submits setup.pbs to a compute node and waits for it to finish.
-# The terminal will be blocked until setup is complete — this is intentional.
 # =============================================================================
 
 echo ""
@@ -16,7 +15,7 @@ echo " GLORIA Pipeline Setup"
 echo "============================================================"
 echo ""
 
-# Sanity check — are we in the right directory?
+# Sanity check for the correct working directory
 [[ -f "$(pwd)/config.sh" ]] || \
   { echo "[ERROR] config.sh not found. Run setup.sh from the gloria_tool root directory."; exit 1; }
 

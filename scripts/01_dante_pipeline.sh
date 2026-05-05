@@ -3,29 +3,29 @@
 # 01_dante_pipeline.sh
 #
 # Step 1/9 — DANTE annotation, LTR region extraction, and FIMO scanning
-#
-# Usage:
-#   bash 01_dante_pipeline.sh
-#
 # All parameters are read from config.sh (sourced automatically).
-# Genome files are read from GENOMES_DIR, motifs from MOTIFS_FILE.
 #
 # Outputs:
-#   LTR_5prime.bed          Merged BED of all full LTR regions (all genomes)
-#   LTR_5prime.fa           FASTA sequences of all full LTR regions
+#   LTR_5prime.bed          Merged BED of full LTR regions
+#   LTR_5prime.fa           FASTA sequences of full LTR regions
 #   merged_genomes.fasta    Concatenated prefixed genome sequences
 #   ltr_background.txt      2nd-order Markov background model (from LTR seqs)
 #   FIMO_LTR/fimo.tsv       FIMO motif hits in full LTR sequences
 #   genome_<PREFIX>/        Per-genome working directories
-# =============================================================================
+#
+# ----------------------------------------------------------
+# Initial setup
+#
+# Load config.sh and set up environment variables.
+# Build list of genome paths from GENOMES variable (basenames only,
+# files were copied to SCRATCHDIR by run_all.pbs).
+# ==========================================================
 set -euo pipefail
 
 MOTIFS="$SCRATCHDIR/motifs.meme"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../config.sh"
 
-# Build list of genome paths from GENOMES variable (basenames only,
-# files were copied to SCRATCHDIR by run_all.pbs)
 GENOMES_ARRAY=()
 for G in $GENOMES; do
   GENOMES_ARRAY+=("$SCRATCHDIR/$G")
@@ -35,20 +35,18 @@ done
 [[ ! -s "$MOTIFS" ]]             && { echo "[ERROR] Motifs file not found: $MOTIFS"; exit 1; }
 
 echo "[STEP 1/9] DANTE + LTR extraction + FIMO (${#GENOMES_ARRAY[@]} genome(s))"
-
 export PATH="$CONDA_ENV_DANTE_LTR/bin:$PATH"
-
-export TMPDIR="${RUN_DIR}/tmp"
+export TMPDIR="${SCRATCHDIR}/tmp"
 export TEMP="$TMPDIR"
 export TMP="$TMPDIR"
-mkdir -p "$TMPDIR"
 
+mkdir -p "$TMPDIR"
 rm -f LTR_5prime.bed LTR_5prime.fa
 
 # ==========================================================
 # derive_genome_prefix
 #
-# Derives a safe filesystem prefix from a genome FASTA filename.
+# Derives a prefix from a genome FASTA filename.
 # Strips the directory path and all extensions, then replaces
 # spaces, dots, slashes, and hyphens with underscores.
 # ==========================================================

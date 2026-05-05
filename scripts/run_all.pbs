@@ -111,6 +111,7 @@ save_results() {
   echo ""
   echo "[SAVE] Copying results after step: $STEP_LABEL → $RUN_DIR"
   rsync -a \
+    --exclude='tmp/' \
     --include='LTR_5prime.bed' \
     --include='LTR_5prime.fa' \
     --include='solo_LTR.bed' \
