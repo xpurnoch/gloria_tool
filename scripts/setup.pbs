@@ -1,0 +1,139 @@
+#!/bin/bash
+#PBS -N setup_gloria
+#PBS -q default
+#PBS -l select=1:ncpus=4:mem=64gb
+#PBS -l walltime=4:00:00
+#PBS -j oe
+
+# =============================================================================
+# setup.pbs
+#
+# Runs the full GLORIA pipeline setup on a compute node.
+# Submitted automatically by setup.sh — do not run directly.
+#
+# What this script does:
+#   1. Creates conda environments inside the project (skips if already exist)
+#   2. Writes GLORIA_ROOT into config.sh
+#   3. Sets GLORIA_ROOT in scripts/run_all.pbs
+# =============================================================================
+set -euo pipefail
+
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+
+info()    { echo -e "${GREEN}[INFO]${RESET} $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+error()   { echo -e "${RED}[ERROR]${RESET} $*"; exit 1; }
+
+# GLORIA_ROOT is passed in via qsub -v
+[[ -z "${GLORIA_ROOT:-}" ]] && error "GLORIA_ROOT not set. Use setup.sh to submit this job."
+
+cd "$GLORIA_ROOT"
+
+echo ""
+echo "============================================================"
+echo " GLORIA Pipeline Setup (compute node: $(hostname))"
+echo "============================================================"
+echo ""
+
+info "GLORIA_ROOT: $GLORIA_ROOT"
+
+# =============================================================================
+# STEP 1: Load mambaforge
+# =============================================================================
+info "Loading mambaforge..."
+module add mambaforge 2>/dev/null || warn "Could not load mambaforge module — assuming mamba is already in PATH"
+
+if ! command -v mamba &>/dev/null; then
+  error "mamba not found. Check that mambaforge module is available."
+fi
+
+# =============================================================================
+# STEP 2: Create conda environments
+# =============================================================================
+info "Creating conda environments inside project directory..."
+
+for ENV_YML in envs/dante_ltr.yml envs/meme.yml; do
+  [[ -f "$ENV_YML" ]] || error "Environment file not found: $ENV_YML"
+
+  ENV_NAME=$(grep '^name:' "$ENV_YML" | awk '{print $2}')
+  [[ -z "$ENV_NAME" ]] && error "Could not parse env name from $ENV_YML"
+
+  ENV_PREFIX="$GLORIA_ROOT/envs/${ENV_NAME}_env"
+
+  if [[ -d "$ENV_PREFIX" ]]; then
+    info "Environment '$ENV_NAME' already exists at $ENV_PREFIX — skipping"
+  else
+    info "Creating environment: $ENV_NAME → $ENV_PREFIX"
+
+    SUCCESS=0
+    for ATTEMPT in 1 2 3; do
+      info "Attempt $ATTEMPT / 3..."
+      if mamba env create -f "$ENV_YML" --prefix "$ENV_PREFIX"; then
+        SUCCESS=1
+        break
+      else
+        warn "Attempt $ATTEMPT failed"
+        rm -rf "$ENV_PREFIX"
+        if [[ $ATTEMPT -lt 3 ]]; then
+          warn "Retrying in 30s..."
+          sleep 30
+        fi
+      fi
+    done
+
+    [[ $SUCCESS -eq 1 ]] || error "Failed to create environment '$ENV_NAME' after 3 attempts"
+    info "Environment '$ENV_NAME' created"
+  fi
+done
+
+# =============================================================================
+# STEP 3: Write GLORIA_ROOT into config.sh
+# =============================================================================
+info "Writing GLORIA_ROOT into config.sh..."
+
+CONFIG="$GLORIA_ROOT/config.sh"
+
+if grep -q "^GLORIA_ROOT=" "$CONFIG"; then
+  sed -i "s|^GLORIA_ROOT=.*|GLORIA_ROOT=\"${GLORIA_ROOT}\"|" "$CONFIG"
+else
+  echo "GLORIA_ROOT=\"${GLORIA_ROOT}\"" >> "$CONFIG"
+fi
+
+info "config.sh updated"
+
+# =============================================================================
+# STEP 4: Set GLORIA_ROOT in scripts/run_all.pbs
+# =============================================================================
+PBS_SCRIPT="$GLORIA_ROOT/scripts/run_all.pbs"
+
+if [[ -f "$PBS_SCRIPT" ]]; then
+  info "Setting GLORIA_ROOT in scripts/run_all.pbs..."
+  if grep -q "^GLORIA_ROOT=" "$PBS_SCRIPT"; then
+    sed -i "s|^GLORIA_ROOT=.*|GLORIA_ROOT=\"${GLORIA_ROOT}\"|" "$PBS_SCRIPT"
+  else
+    sed -i "s|^# =* MAIN|GLORIA_ROOT=\"${GLORIA_ROOT}\"\n\n# === MAIN|" "$PBS_SCRIPT"
+  fi
+  info "scripts/run_all.pbs updated"
+else
+  warn "scripts/run_all.pbs not found — skipping"
+fi
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+echo ""
+echo "============================================================"
+echo " Setup complete"
+echo "============================================================"
+echo "  GLORIA_ROOT      : $GLORIA_ROOT"
+echo "  dante_ltr env    : $GLORIA_ROOT/envs/dante_ltr_env"
+echo "  meme env         : $GLORIA_ROOT/envs/meme_env"
+echo "  Config file      : $CONFIG"
+echo ""
+echo "  Next step: submit the pipeline with"
+echo "    qsub -v GENOMES=\"genome1.fna\" scripts/run_all.pbs"
+echo "============================================================"
+

@@ -37,7 +37,7 @@ set -uo pipefail
 # =============================================================================
 # Source config — all parameters, thresholds, and derived paths come from here
 # =============================================================================
-GLORIA_ROOT=""
+GLORIA_ROOT="/storage/brno2/home/xpurnoch/work/gloria_tool"
 source "$GLORIA_ROOT/config.sh"
 
 SCRIPTS="$SCRIPTS_DIR"
@@ -110,7 +110,24 @@ save_results() {
   local STEP_LABEL="${1:-unknown}"
   echo ""
   echo "[SAVE] Copying results after step: $STEP_LABEL → $RUN_DIR"
-  rsync -a --exclude='tmp/' --exclude='*.fai' \
+  rsync -a \
+    --include='LTR_5prime.bed' \
+    --include='LTR_5prime.fa' \
+    --include='solo_LTR.bed' \
+    --include='solo_LTR.fa' \
+    --include='FIMO_LTR/' \
+    --include='FIMO_LTR/**' \
+    --include='FIMO_SOLO_LTR/' \
+    --include='FIMO_SOLO_LTR/**' \
+    --include='FIMO_RANDOM_GENOMIC/' \
+    --include='FIMO_RANDOM_GENOMIC/**' \
+    --include='TFBS_LTR_enrichment_results.tsv' \
+    --include='ltr_vs_ctrl_comparison.tsv' \
+    --include='GSEA_TF_families.tsv' \
+    --include='pipeline_report.txt' \
+    --include='plots/' \
+    --include='plots/**' \
+    --exclude='*' \
     "$SCRATCHDIR/" "$RUN_DIR/" 2>/dev/null \
     && echo "[SAVE] Done" \
     || echo "[SAVE] WARNING: rsync had errors (partial copy)"
