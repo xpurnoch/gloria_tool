@@ -38,7 +38,7 @@ if [[ $EXIT_CODE -eq 0 ]]; then
   echo "============================================================"
   echo ""
   echo "  Next step: submit the pipeline with"
-  echo "    qsub -v GENOMES=\"genome1.fna\" scripts/run_all.pbs"
+  echo "    qsub -v GENOMES=\"test.fna\" scripts/run_all.pbs"
   echo "============================================================"
 else
   echo "[ERROR] Setup job failed (exit code $EXIT_CODE)"

@@ -7,11 +7,6 @@
 # Solo LTRs are remnants of complete LTR retrotransposons that lost their
 # internal sequence via homologous recombination between the 5' and 3' LTR.
 #
-# Usage:
-#   bash 02_hmmer_solo_ltr.sh
-#
-# All parameters are read from config.sh (sourced automatically).
-#
 # Inputs (from step 01):
 #   LTR_5prime.fa             Full LTR sequences (used to build HMM profiles)
 #   LTR_5prime.bed            Full LTR coordinates (used to compute length caps)
@@ -67,7 +62,7 @@ echo "    SOLO_LTR_MASK_OVERLAP=$SOLO_LTR_MASK_OVERLAP"
 # ==========================================================
 # run_fimo_parallel
 #
-# Splits a MEME motif file into N_CHUNKS chunks (round-robin),
+# Splits a MEME motif file into N_CHUNKS chunks,
 # runs one FIMO process per chunk in parallel, then merges all
 # per-chunk fimo.tsv files into a single output TSV.
 # Returns 0 even when no hits are found (empty-but-valid TSV).
@@ -696,9 +691,7 @@ filter_against_rte_mask full_rte_mask.bed || {
 extract_solo_ltr_sequences
 
 # Switch to meme environment for FIMO.
-# Must happen at top level so PATH is inherited by all background FIMO subshells.
 export PATH="$CONDA_ENV_MEME/bin:$PATH"
-
 run_fimo_solo_ltr "$MOTIFS" "$N_CORES"
 print_summary
 

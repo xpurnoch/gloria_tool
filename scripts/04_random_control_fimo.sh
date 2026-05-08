@@ -8,11 +8,6 @@
 # of all LTR regions (full + solo). Controls are used in step 05 to
 # distinguish LTR-specific TF enrichment from genomic background signal.
 #
-# Usage:
-#   bash 04_random_control_fimo.sh
-#
-# All parameters are read from config.sh (sourced automatically).
-#
 # Inputs (produced by steps 01 and 02):
 #   LTR_5prime.bed / .fa        Full LTR coordinates and sequences
 #   solo_LTR.bed / .fa          Solo LTR coordinates and sequences
@@ -269,8 +264,6 @@ shuffle_genomic_controls() {
 # extract_control_sequences
 #
 # Extracts FASTA sequences for shuffled control regions.
-# -s is intentionally NOT used — control IDs do not follow
-# the canonical ltr_id format and need no strand suffix.
 # ==========================================================
 extract_control_sequences() {
   bedtools getfasta \
