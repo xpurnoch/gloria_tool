@@ -1,45 +1,28 @@
 #!/bin/bash
 #PBS -N gloria_tool
 #PBS -q default
-#PBS -l select=1:ncpus=8:mem=20gb:scratch_local=80gb
-#PBS -l walltime=10:00:00
+#PBS -l select=1:ncpus=8:mem=200gb:scratch_local=800gb
+#PBS -l walltime=120:00:00
 #PBS -j oe
 
 # =============================================================================
 # run_all.pbs — GLORIA pipeline PBS job submission script
 #
 # Runs all 9 pipeline steps sequentially on a PBS cluster node.
-# After each step, results are synced to permanent storage via rsync.
 # If any step fails, partial results are saved before exiting.
 #
-# Usage:
-#   qsub run_all.pbs
-#   qsub -v SKIP_CONTROL=1 run_all.pbs
-#
 # Before submitting:
-#   1. Set GLORIA_ROOT below to the absolute path of your gloria_tool directory.
-#   2. Place genome FASTA files (.fna / .fa / .fasta) in gloria_tool/genomes/
-#   3. Place motif file as gloria_tool/motifs.meme
-#   4. Place JASPAR family mapping as gloria_tool/jaspar_tf_families.csv
-#   5. Create conda environments (once):
-#        conda env create -f gloria_tool/envs/dante_ltr.yml
-#        conda env create -f gloria_tool/envs/meme.yml
+#   1. Place genome FASTA files (.fna / .fa / .fasta) in gloria_tool/genomes/
+#   2. Adjust PBS resource requirements as needed
 #
-# Optional variable:
-#   SKIP_CONTROL   Set to 1 to skip steps 4 and 5 (random control analysis)
-#
-# PBS resource requirements (adjust as needed):
-#   1 node, 8 CPUs, 80 GB RAM, 80 GB scratch, 2h walltime
 # =============================================================================
-
 set -uo pipefail
 
 # =============================================================================
-# Source config — all parameters, thresholds, and derived paths come from here
+# Source config.sh — all parameters, thresholds, and derived paths come from here
 # =============================================================================
 GLORIA_ROOT=""
 source "$GLORIA_ROOT/config.sh"
-
 SCRIPTS="$SCRIPTS_DIR"
 
 # =============================================================================
@@ -102,9 +85,8 @@ copy_inputs_to_scratch() {
 # =============================================================================
 # save_results
 #
-# Syncs all results from scratch to permanent storage using rsync.
+# Syncs results from scratch to permanent storage using rsync.
 # Called after each step and on emergency exit.
-# Excludes tmp/ and *.fai to save space.
 # =============================================================================
 save_results() {
   local STEP_LABEL="${1:-unknown}"
@@ -150,7 +132,6 @@ setup_exit_trap() {
       echo "=========================================="
       save_results "EMERGENCY_EXIT"
     fi
-    # Clean scratch only on success to allow debugging on failure
     [[ $PIPELINE_FAILED -eq 0 ]] && rm -rf "$SCRATCHDIR/tmp" 2>/dev/null || true
   }
 

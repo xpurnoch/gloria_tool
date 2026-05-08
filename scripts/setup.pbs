@@ -13,7 +13,7 @@
 #
 # What this script does:
 #   1. Creates conda environments inside the project (skips if already exist)
-#   2. Writes GLORIA_ROOT into config.sh
+#   2. Sets GLORIA_ROOT in config.sh
 #   3. Sets GLORIA_ROOT in scripts/run_all.pbs
 # =============================================================================
 set -euo pipefail
@@ -27,9 +27,7 @@ info()    { echo -e "${GREEN}[INFO]${RESET} $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${RESET} $*"; }
 error()   { echo -e "${RED}[ERROR]${RESET} $*"; exit 1; }
 
-# GLORIA_ROOT is passed in via qsub -v
 [[ -z "${GLORIA_ROOT:-}" ]] && error "GLORIA_ROOT not set. Use setup.sh to submit this job."
-
 cd "$GLORIA_ROOT"
 
 echo ""
