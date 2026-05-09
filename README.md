@@ -67,9 +67,6 @@ Use `qstat` to monitor the job status:
 qstat -u $USER
 ```
 
-PBS resources are set in the `#PBS` header of `run_all.pbs`. Adjust `ncpus`,
-`mem`, `scratch_local`, and `walltime` to match your cluster and data size.
-
 ---
 
 ## Outputs
