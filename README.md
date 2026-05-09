@@ -17,8 +17,8 @@ gloria_tool/
 ├── genomes/                   ← Place genome FASTA files here (.fna / .fa / .fasta)
 ├── output/                    ← Results are written here
 ├── envs/
-│   ├── dante_ltr.yml          ← Conda environment for DANTE, HMMER, bedtools, R
-│   └── meme.yml               ← Conda environment for FIMO (MEME suite)
+│   ├── dante_ltr.yml          ← Environment for DANTE, HMMER, bedtools, R
+│   └── meme.yml               ← Environment for FIMO (MEME suite)
 └── scripts/
     ├── 01_dante_pipeline.sh
     ├── 02_hmmer_solo_ltr.sh
