@@ -94,10 +94,13 @@ output/<genome_name>/
 ## Customising parameters
 
 All numerical thresholds are located in the config files. See `config.sh` and `config.R` for details.
-Before submitting the job, you can open `scripts/run_all.pbs` and edit the `#PBS` header:
-- `ncpus` — number of available CPU cores
-- `mem` — total memory used
-- `walltime` — maximum runtime
+
+Before submitting the job, you can open `scripts/run_all.pbs` and edit the `#PBS` header
+depending on the number and size of input genomes:
+
+- `ncpus` — number of available CPU cores (default: `8`)
+- `mem` — total memory used (default: `200gb`)
+- `walltime` — maximum runtime (default: `120:00:00`)
 
 
 
