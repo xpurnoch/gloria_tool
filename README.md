@@ -1,12 +1,10 @@
 # GLORIA — Genome LTR Oriented Regulation Analysis
-
 A bioinformatic pipeline for identifying transcription factor binding site (TFBS) enrichment
 in LTR retrotransposon families across one or more plant genomes.
 
 ---
 
 ## Directory structure
-
 ```
 gloria_tool/
 ├── setup.sh                   ← Setup conda environments and set root directory
@@ -29,40 +27,68 @@ gloria_tool/
     ├── 07_run_gsea.R
     ├── 08_make_plots.R
     ├── 09_report.R
-    ├── setup.pbs               ← PBS job scrcript for creating conda environments
+    ├── setup.pbs               ← PBS job script for creating conda environments
     └── run_all.pbs             ← PBS job script for running all steps
 ```
 
 ---
 
 ## First-time setup
+
 Run `setup.sh` from `gloria_tool/` directory to create conda environments and set root directory:
 
 ```bash
 bash setup.sh
 ```
-This step may take a while to complete. (Approximately 40 minutes.)
+
+This step may take a while to complete (approximately 40 minutes). The terminal will be blocked
+until setup is finished — do not close it.
+
+> **Why does setup run on a compute node?**
+> The `dante_ltr` environment includes the R package `GenomeInfoDbData`, which fails to install
+> on MetaCentrum login nodes due to thread limits. Running setup on a compute node avoids this.
+
+### Manual setup (advanced)
+
+If you prefer to create the environments yourself, use the provided `.yml` files:
+
+```bash
+mamba env create -f envs/dante_ltr.yml --prefix ./envs/dante_ltr_env
+mamba env create -f envs/meme.yml      --prefix ./envs/meme_env
+```
+
+Then set `GLORIA_ROOT` manually in both `config.sh` and `scripts/run_all.pbs`:
+
+```bash
+GLORIA_ROOT="/absolute/path/to/gloria_tool"
+```
 
 ---
 
 ## Running the pipeline
 
 ### Place input files
+
 Copy genome FASTA files into `genomes/` (`.fna`, `.fa`, or `.fasta` extension).
 
 ### Run the pipeline
+
 Run `scripts/run_all.pbs` from `gloria_tool/` directory to submit job to the PBS cluster:
+
 ```bash
 qsub -v "GENOMES=test.fna" scripts/run_all.pbs
-
 ```
+
 For multiple genomes, use a space-separated list:
+
 ```bash
 qsub -v "GENOMES=potato.fna tomato.fna" scripts/run_all.pbs
 ```
 
 ### Monitor the job
+
 Use `qstat` to monitor the job status:
+
 ```bash
 qstat -u $USER
 ```
@@ -86,6 +112,7 @@ output/<genome_name>/
 ├── pipeline_report.txt               Plain-text summary report
 └── plots/                            All analysis plots (PNG)
 ```
+
 ---
 
 ## Customising parameters
@@ -98,6 +125,3 @@ depending on the number and size of input genomes:
 - `ncpus` — number of available CPU cores (default: `8`)
 - `mem` — total memory used (default: `200gb`)
 - `walltime` — maximum runtime (default: `120:00:00`)
-
-
-
