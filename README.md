@@ -48,21 +48,6 @@ until setup is finished — do not close it.
 > The `dante_ltr` environment includes the R package `GenomeInfoDbData`, which fails to install
 > on MetaCentrum login nodes due to thread limits. Running setup on a compute node avoids this.
 
-### Manual setup (advanced)
-
-If you prefer to create the environments yourself, use the provided `.yml` files:
-
-```bash
-mamba env create -f envs/dante_ltr.yml --prefix ./envs/dante_ltr_env
-mamba env create -f envs/meme.yml      --prefix ./envs/meme_env
-```
-
-Then set `GLORIA_ROOT` manually in both `config.sh` and `scripts/run_all.pbs`:
-
-```bash
-GLORIA_ROOT="/absolute/path/to/gloria_tool"
-```
-
 ---
 
 ## Running the pipeline
