@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -N setup_gloria
 #PBS -q default
-#PBS -l select=1:ncpus=4:mem=64gb
-#PBS -l walltime=4:00:00
+#PBS -l select=1:ncpus=2:mem=16gb
+#PBS -l walltime=2:00:00
 #PBS -j oe
 
 # =============================================================================
