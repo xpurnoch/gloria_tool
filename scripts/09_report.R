@@ -2,16 +2,11 @@
 # =============================================================================
 # 09_report.R  (GLORIA — summary report)
 #
-# Step 9/9 — Generate a plain-text summary report of all analysis results
+# Step 9/9 — Generate a summary report
 #
 # All parameters are read from config.sh via load_config.R.
 # Edit config.sh to change thresholds — do not edit this script.
 #
-# Usage:
-#   Rscript 09_report.R
-#   Rscript 09_report.R results.tsv
-#   Rscript 09_report.R results.tsv GSEA_TF_families.tsv
-#   Rscript 09_report.R results.tsv GSEA_TF_families.tsv report.txt
 # =============================================================================
 
 # =============================================================================
