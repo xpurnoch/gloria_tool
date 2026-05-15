@@ -27,9 +27,26 @@ echo "[INFO] Working directory: $(pwd)"
 echo "[INFO] This may take up to 40 minutes. Do not close this terminal."
 echo ""
 
-qsub -W block=true -v GLORIA_ROOT="$(pwd)" scripts/setup.pbs
+spinner() {
+  local FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  local i=0
+  while true; do
+    printf "\r[INFO] Setup running... ${FRAMES[$i]} (this may take up to 40 minutes)"
+    i=$(( (i + 1) % ${#FRAMES[@]} ))
+    sleep 0.1
+  done
+}
 
+# Start spinner in background
+spinner &
+SPINNER_PID=$!
+
+qsub -W block=true -v GLORIA_ROOT="$(pwd)" scripts/setup.pbs >/dev/null 2>&1
 EXIT_CODE=$?
+
+# Stop spinner
+kill $SPINNER_PID 2>/dev/null
+printf "\r%*s\r" 60 ""
 
 echo ""
 if [[ $EXIT_CODE -eq 0 ]]; then
