@@ -7,9 +7,7 @@
 # All parameters are read from config.sh via load_config.R.
 # Edit config.sh to change thresholds — do not edit this script.
 #
-# Plots requiring control data (2, 7, 8, 9) are skipped when
-# SKIP_CONTROL=1 or TFBS_random_controls_objects.RData is missing.
-# Plot 3 is only generated when more than one genome is present.
+# Plot "plot_per_genome_ecdf" is only generated when more than one genome is present.
 # =============================================================================
 suppressPackageStartupMessages({
   library(dplyr)
