@@ -35,6 +35,13 @@ gloria_tool/
 
 ## First-time setup
 
+Clone the repository and enter the project directory:
+
+```bash
+git clone https://github.com/xpurnoch/gloria_tool
+cd gloria_tool
+```
+
 Run `setup.sh` from `gloria_tool/` directory to create conda environments and set root directory:
 
 ```bash

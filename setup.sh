@@ -24,7 +24,6 @@ echo ""
 
 echo "[INFO] Submitting setup job to compute node..."
 echo "[INFO] Working directory: $(pwd)"
-echo "[INFO] This may take up to 40 minutes. Do not close this terminal."
 echo ""
 
 spinner() {
